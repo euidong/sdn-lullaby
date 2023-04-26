@@ -2,6 +2,7 @@ from agent import Agent
 from env import Environment
 from api.simulator import Simulator
 
+
 def main():
     max_episode_num = 100
     api = Simulator()
@@ -17,6 +18,7 @@ def main():
             agent.update(state, action, reward, next_state)
             state = next_state
     agent.save()
+
 
 if __name__ == "__main__":
     main()

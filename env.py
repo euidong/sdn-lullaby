@@ -1,6 +1,7 @@
 from typing import List, Tuple
 from api.api import Api
 
+
 class Environment:
     def __init__(self, api: Api) -> None:
         self.api = api
@@ -15,7 +16,6 @@ class Environment:
         """TODO: reset env and return state"""
         pass
 
-
     def _moveVNF(self, vnfId, srvId) -> None:
         return self.api.move_vnf(vnfId, srvId)
 
@@ -25,5 +25,5 @@ class Environment:
         """TODO: calc reward"""
         return reward
 
-    def _getSrvs(self) -> List[Tuple[int, int]]:
+    def _getSrvs(self) -> List[Tuple[int]]:
         return self.api.get_util_from_srvs()

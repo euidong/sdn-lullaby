@@ -1,10 +1,9 @@
 from api.api import Api
-from typing import List, implementer
+from typing import List
 from dataType import Server
 
 
-@implementer(Api)
-class NiTestBed:
+class NiTestBed(Api):
     srvs: List[Server]
 
     def __init__(self) -> None:
