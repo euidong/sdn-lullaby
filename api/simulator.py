@@ -6,7 +6,7 @@ import numpy as np
 class Simulator(Api):
     srvs: List[Server]
 
-    def __init__(self, srv_n: int, srv_cpu_cap: int, srv_mem_cap: int) -> None:
+    def __init__(self, srv_n: int = 4, srv_cpu_cap: int = 8, srv_mem_cap: int = 32, max_vnf_num: int = 100) -> None:
         """Intialize Simulator
 
         Args:
@@ -15,6 +15,7 @@ class Simulator(Api):
             srv_mem_cap (int): each server's capacity of memory
         """
         self.srvs = []
+        self.max_vnf_num = max_vnf_num
         for i in range(srv_n):
             self.srvs.append(Server(i, srv_cpu_cap, srv_mem_cap, []))
 
@@ -44,7 +45,7 @@ class Simulator(Api):
         ]
 
         cpu_load, mem_load = self._calc_edge_load()
-        while cpu_load < max_edge_load and mem_load < max_edge_load:
+        while cpu_load < max_edge_load and mem_load < max_edge_load and vnf_cnt < self.max_vnf_num:
             # VNF를 생성
             vnf_type = POSSIBLE_VNF_TYPE[np.random.choice(len(POSSIBLE_VNF_TYPE))]
             vnf = VNF(vnf_cnt, vnf_type[0],

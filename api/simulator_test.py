@@ -9,17 +9,21 @@ class TestSimulator(unittest.TestCase):
         api.reset()
 
         srvs = api.get_util_from_srvs()
-
+        vnf_cnt = 0
         for srv in srvs:
             print(f'\nserver {srv.id}')
             print(f'cpu: {srv.cpu_cap} mem: {srv.mem_cap}')
             for vnf in srv.vnfs:
+                vnf_cnt += 1
                 print(
                     f'vnf {vnf.id} cpu: {vnf.cpu_req} mem: {vnf.mem_req} sfc: {vnf.sfc_id}')
             print('---------------------------------')
         edge_cpu_load, edge_mem_load = api._calc_edge_load()
         print(f'edge cpu: {edge_cpu_load} mem: {edge_mem_load}')
-        self.assertGreaterEqual(max(edge_cpu_load, edge_mem_load), 0.5)
+        if vnf_cnt > api.max_vnf_num:
+            self.fail('vnf count is too high')
+        if edge_cpu_load < 0.5 and edge_mem_load < 0.5:
+            self.fail('edge load is too low')
 
     def test_move_vnf(self):
         api = Simulator(srv_n=4, srv_cpu_cap=8, srv_mem_cap=32)
