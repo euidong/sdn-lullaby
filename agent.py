@@ -13,7 +13,7 @@ class Agent:
         self.alpha = alpha
         self.gamma = gamma
         self.history = []
-        self.q_table = np.random((state_num, action_num))
+        self.q_table = np.random.rand(state_num, action_num)
 
     def decide_action(self, state, duration) -> int:
         if np.random.uniform() < self.epsilon / duration:

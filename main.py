@@ -9,21 +9,23 @@ def main():
     max_episode_len = 1000
     max_vnf_num = 100
     srv_n = 4
-    srv_cpu_cap = 8
-    srv_mem_cap = 32
+    srv_cpu_cap = 4
+    srv_mem_cap = 16
     api = Simulator(srv_n, srv_cpu_cap, srv_mem_cap, max_vnf_num)
     env = Environment(api)
-    agent = Agent()
+    converter = Converter(srv_n, max_vnf_num, srv_cpu_cap, srv_mem_cap)
+    agent = Agent(action_num=converter.get_action_len(),
+                  state_num=converter.get_state_len())
 
     for i in range(max_episode_num):
         s = env.reset()
-        e_s = Converter.encode_state(s)
+        e_s = converter.encode_state(s)
         print(f"Episode {i} is started")
         for j in range(max_episode_len):
             e_a = agent.decide_action(e_s, duration=i*j)
-            a = Converter.decode_action(e_a)
+            a = converter.decode_action(e_a)
             ns, r, done = env.step(a)
-            e_ns = Converter.encode_state(ns)
+            e_ns = converter.encode_state(ns)
             agent.update(e_s, e_a, r, e_ns)
             e_s = e_ns
             if done:

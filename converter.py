@@ -1,42 +1,55 @@
 from dataType import Server
-from typing import Tuple
+from typing import Tuple, List
 
 
 class Converter:
-    def __init__(self, srv_n, max_vnf_num):
+    def __init__(self, srv_n, vnf_n, cpu_cap, mem_cap):
         self.srv_n = srv_n
-        self.max_vnf_num = max_vnf_num
+        self.vnf_n = vnf_n
+        self.cpu_cap = cpu_cap
+        self.mem_cap = mem_cap
 
-    def encode_state(self, srvs: list[Server]) -> int:
+    def encode_state(self, srvs: List[Server]) -> int:
         """Encode state to integer
 
         Args:
-            srvs (list[Server]): list of servers
+            srvs (List[Server]): List of servers
 
         Returns:
             int: encoded state
         """
-        state = 0
+        srv_rems = []
         for srv in srvs:
-            state += (srv.cpu_cap - srv.cpu_remain) * srv.mem_cap
+            srv_rems.append((srv.cpu_cap, srv.mem_cap))
+            for vnf in srv.vnfs:
+                srv_rems[srv.id][0] -= vnf.cpu_req
+                srv_rems[srv.id][1] -= vnf.mem_req
+        state = 0
+        for i, (cpu_rem, mem_rem) in enumerate(srv_rems):
+            state += ((self.cpu_cap * self.mem_cap) ** i) * \
+                ((cpu_rem * self.mem_cap) + mem_rem)
         return state
 
-    def decode_state(self, state: int, srvs: list[Server]) -> list[Server]:
-        """Decode state to list of servers
+    def decode_state(self, state: int) -> List[Server]:
+        """Decode state to List of servers
 
         Args:
             state (int): encoded state
-            srvs (list[Server]): list of servers
+            srvs (List[Server]): List of servers
 
         Returns:
-            list[Server]: list of servers
+            List[Server]: List of servers
         """
-        for srv in srvs:
-            srv.cpu_remain = srv.cpu_cap - state % srv.mem_cap
-            state //= srv.mem_cap
-        return srvs
+        srv_rems = []
+        for i in range(self.srv_n):
+            rem = state // (self.cpu_cap * self.mem_cap)
+            cpu_rem = rem // self.mem_cap
+            mem_rem = rem % self.mem_cap
+            srv_rems.append((cpu_rem, mem_rem))
+            state -= rem
+            state //= self.cpu_cap * self.mem_cap
+        return srv_rems
 
-    @classmethod
     def encode_action(self, action: Tuple[int, int]) -> int:
         """Encode action to integer
 
@@ -47,7 +60,6 @@ class Converter:
         """
         return self.srv_n * action[0] + action[1]
 
-    @classmethod
     def decode_action(self, action: int) -> Tuple[int, int]:
         """Decode action to integer
 
@@ -60,3 +72,19 @@ class Converter:
         vnf_id = action // self.srv_n
         srv_id = action % self.srv_n
         return (vnf_id, srv_id)
+
+    def get_state_len(self) -> int:
+        """Get state length
+
+        Returns:
+            int: state length
+        """
+        return (self.cpu_cap * self.mem_cap) ** self.srv_n
+
+    def get_action_len(self) -> int:
+        """Get action length
+
+        Returns:
+            int: action length
+        """
+        return self.srv_n * self.vnf_n
