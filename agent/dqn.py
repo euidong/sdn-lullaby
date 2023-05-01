@@ -8,7 +8,7 @@ from collections import deque
 import itertools
 
 
-class DQLAgent:
+class DQNAgent:
     MAX_MEMORY_LEN = 1000
     BATCH_SIZE = 32
     vm_selection_input_num = 10

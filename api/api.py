@@ -1,9 +1,6 @@
 from typing import List
 from dataType import Edge, Server, VNF, SFC
 
-# Python Interface. PEP 544
-# https://peps.python.org/pep-0544/
-
 
 class Api:
     edge: Edge

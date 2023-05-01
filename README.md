@@ -1,47 +1,37 @@
 # VM Consolidation
 
+DQN based VM Consolidation code.
+
 ## Dependency
 
 - GPU : RTX2060
 - CUDA : 10.2
 - torch : 1.6.0
+- platform : Window (Recommended)
+- IDE : Vscode (Recommended)
 
-## Process
+## Run
 
-- **Host Detection**(DQL)
-  - need to select over/underload host.
-  - state: each host capacity and inuse (CPU, Mem)
-  - action: host id[one hot]
-  - reward: 1 if increase # sleeping host else 0
-- **VM Selection**
-  - select VM with lowest request.
-  - LSTM
-    - input
-      - vm cpu request
-      - vm memory request
-    - output
-      - one hot encoding of vm id[one hot]
-- **VM Placement**(DQL)
-  - state: each host capacity and inuse (CPU, Mem)
-  - action: host id[one hot]
-  - reward: 1 if increase # sleeping host else 0
+```bash
+conda create --name vm-consolidation --file requirements.txt
+python main.py
+```
 
+## Project Structure
 
-## DQL
-
-- state
-  - vm
-    - CPU request
-    - Mem request
-    - located server CPU capacity
-    - located server Mem capacity
-    - located server CPU request
-    - located server CPU request
-    - located edge CPU capacity
-    - located edge Mem capacity
-    - located edge CPU request
-    - located edge Mem request
-- action
-  - moving vm id
-  - sender id
-  - receiver id
+```plaintext
+|
+|- dataType.py  # Data Type code
+|- env.py       # Environment code
+|- main.py      # Main code
+|- agent        # Agent 
+|  |- dqn.py    # DQN Agent
+|  |- model.py  # DQN Model
+|  `- ql.py     # Q-Learning based Agent (not working now) 
+|- api
+|   |- api.py             # API Abstract Class
+|   |- niTestbed.py       # NI testbed api (for real testbed) (not implemented)
+|   |- simulator_test.py  # Simulator test code
+|   `- simulator.py       # Simulator api (for simulating)
+`- data # DQN model parameters
+```

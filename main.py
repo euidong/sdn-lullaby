@@ -1,4 +1,4 @@
-from agent.dql import DQLAgent as Agent
+from agent.dqn import DQNAgent as Agent
 from env import Environment
 from api.simulator import Simulator
 
