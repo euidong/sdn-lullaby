@@ -1,9 +1,7 @@
 import numpy as np
 
-from dataType import Server
 
-
-class Agent:
+class QLAgent:
     MAX_HISOTRY_LEN = 1000
 
     def __init__(self, action_num: int, state_num: int, epsilon: float = 0.5, alpha=0.1, gamma=0.1) -> None:

@@ -6,23 +6,21 @@ import numpy as np
 class TestSimulator(unittest.TestCase):
     def test_reset_simulator(self):
         api = Simulator(srv_n=4, srv_cpu_cap=8, srv_mem_cap=32)
-        api.reset()
+        util = 0.5
+        sfc_n = 4
+        api.reset(sfc_n, util)
 
-        srvs = api.get_util_from_srvs()
-        vnf_cnt = 0
-        for srv in srvs:
-            print(f'\nserver {srv.id}')
-            print(f'cpu: {srv.cpu_cap} mem: {srv.mem_cap}')
-            for vnf in srv.vnfs:
-                vnf_cnt += 1
-                print(
-                    f'vnf {vnf.id} cpu: {vnf.cpu_req} mem: {vnf.mem_req} sfc: {vnf.sfc_id}')
-            print('---------------------------------')
-        edge_cpu_load, edge_mem_load = api._calc_edge_load()
-        print(f'edge cpu: {edge_cpu_load} mem: {edge_mem_load}')
-        if vnf_cnt > api.max_vnf_num:
+        sfs = api.get_sfcs()
+        if len(sfs) > sfc_n:
+            self.fail('sfc count is too high')
+        vnfs = api.get_vnfs()
+        if len(vnfs) > api.max_vnf_num: 
             self.fail('vnf count is too high')
-        if edge_cpu_load < 0.5 and edge_mem_load < 0.5:
+        edge = api.get_edge()
+        edge_cpu_util = edge.cpu_load / edge.cpu_cap
+        edge_mem_util = edge.mem_load / edge.mem_cap
+        print(f'edge cpu util: {edge_cpu_util} mem util: {edge_mem_util}')
+        if edge_cpu_util < util and edge_mem_util < util:
             self.fail('edge load is too low')
 
     def test_move_vnf(self):
@@ -31,14 +29,14 @@ class TestSimulator(unittest.TestCase):
 
         # calc vnf_cnt
         vnf_cnt = 0
-        srvs = api.get_util_from_srvs()
+        srvs = api.get_srvs()
         for srv in srvs:
             vnf_cnt += len(srv.vnfs)
 
         # moving success test
         is_moved = False
         while not is_moved:
-            srvs = api.get_util_from_srvs()
+            srvs = api.get_srvs()
             vnf_id = np.random.choice(vnf_cnt)
             # find current vnf's server id and vnf
             for srv in srvs:
@@ -71,7 +69,7 @@ class TestSimulator(unittest.TestCase):
             self.fail('server is not exist')
         # 3. 이미 vnf_id를 가진 srv_id 전달
         vnf_id = np.random.choice(vnf_cnt)
-        srvs = api.get_util_from_srvs()
+        srvs = api.get_srvs()
         for srv in srvs:
             for vnf in srv.vnfs:
                 if vnf.id == vnf_id:
@@ -83,7 +81,7 @@ class TestSimulator(unittest.TestCase):
             self.fail('vnf is already in server')
         
         # 4. capacity 초과
-        srvs = api.get_util_from_srvs()
+        srvs = api.get_srvs()
         vnf_id = np.random.choice(vnf_cnt)
         srv_id = np.random.choice(len(srvs))
         srvs[srv_id].cpu_cap = 0
