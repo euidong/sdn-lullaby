@@ -14,7 +14,7 @@ class NN(nn.Module):
 
     def forward(self, x):
         x, _ = self.lstm(x)
-        x = self.relu(x)  # TODO: check if this is correct
+        x = self.relu(x)
         x = self.flatten(x)
         x = self.fc1(x)
         x = self.relu(x)

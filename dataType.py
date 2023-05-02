@@ -2,21 +2,6 @@ from typing import List, Optional
 from dataclasses import dataclass
 import torch
 
-"""
-주어진 정보는 아래와 같아야 한다.
-
-- Server
-  - Server ID
-  - Server CPU Core Capacity
-  - Server Memory Capacity
-  - Included VNFs
-
-- VNF
-  - VNF ID
-  - VNF CPU Core Requirement
-  - VNF Memory Requirement
-  - SFC ID
-"""
 
 @dataclass
 class VNF:
@@ -25,6 +10,7 @@ class VNF:
     mem_req: int
     sfc_id: int
     srv_id: int
+
 
 @dataclass
 class Server:
@@ -35,6 +21,7 @@ class Server:
     mem_load: int
     vnfs: List[VNF]
 
+
 @dataclass
 class Edge:
     cpu_cap: int
@@ -42,10 +29,12 @@ class Edge:
     cpu_load: int
     mem_load: int
 
+
 @dataclass
 class SFC:
     id: int
     vnfs: List[VNF]
+
 
 @dataclass
 class State:
@@ -54,10 +43,12 @@ class State:
     vnfs: List[VNF]
     sfcs: List[SFC]
 
+
 @dataclass
 class Action:
     vnf_id: int
     srv_id: int
+
 
 @dataclass
 class Scene:

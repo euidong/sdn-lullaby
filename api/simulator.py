@@ -9,7 +9,7 @@ class Simulator(Api):
     vnfs: List[VNF]
     sfcs: List[SFC]
 
-    def __init__(self, srv_n: int = 4, srv_cpu_cap: int = 8, srv_mem_cap: int = 32, max_vnf_num: int = 100) -> None:
+    def __init__(self, srv_n: int = 4, srv_cpu_cap: int = 8, srv_mem_cap: int = 32, max_vnf_num: int = 100, max_edge_load: float = 0.3) -> None:
         """Intialize Simulator
 
         Args:
@@ -21,6 +21,7 @@ class Simulator(Api):
         self.srv_cpu_cap = srv_cpu_cap
         self.srv_mem_cap = srv_mem_cap
         self.max_vnf_num = max_vnf_num
+        self.max_edge_load = max_edge_load
         
         self.edge = Edge(
             cpu_cap=srv_cpu_cap * srv_n,
@@ -41,8 +42,7 @@ class Simulator(Api):
                 vnfs=[],
             ))
         
-    # TODO: need a logic for mixing vnf.
-    def reset(self, sfc_n: int = 4, max_edge_util: float = 0.1) -> None:
+    def reset(self, sfc_n: int = 4) -> None:
         """Generate random VNFs and put them into servers
 
         Args:
@@ -97,7 +97,7 @@ class Simulator(Api):
         ]
 
         
-        while self.edge.cpu_load / self.edge.cpu_cap  < max_edge_util and self.edge.mem_load / self.edge.mem_cap < max_edge_util and vnf_cnt < self.max_vnf_num:
+        while self.edge.cpu_load / self.edge.cpu_cap  < self.max_edge_load and self.edge.mem_load / self.edge.mem_cap < self.max_edge_load and vnf_cnt < self.max_vnf_num:
             # VNF를 생성
             vnf_type = POSSIBLE_VNF_TYPE[np.random.choice(len(POSSIBLE_VNF_TYPE))]
             vnf = VNF(id=vnf_cnt, 

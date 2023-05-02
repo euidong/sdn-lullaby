@@ -8,9 +8,14 @@ def main():
     max_episode_len = 250
     max_vnf_num = 10
     srv_n = 4
-    srv_cpu_cap = 4
-    srv_mem_cap = 16
-    api = Simulator(srv_n, srv_cpu_cap, srv_mem_cap, max_vnf_num)
+    srv_cpu_cap = 8
+    srv_mem_cap = 32
+    max_edge_load = 0.3
+    api = Simulator(srv_n,
+                    srv_cpu_cap,
+                    srv_mem_cap,
+                    max_vnf_num,
+                    max_edge_load)
     env = Environment(api)
     agent = Agent(vnf_num=max_vnf_num, srv_num=srv_n)
 
@@ -26,7 +31,7 @@ def main():
             state = next_state
             if done:
                 break
-            if reward > 0:
+            if reward != 0:
                 print(f"Episode {i+1} step {j+1}'s reward is {reward}.")
         print(f"sleeping server: {env._get_zero_util_cnt(state)} / {srv_n}")
     agent.save()

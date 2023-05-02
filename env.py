@@ -10,7 +10,6 @@ class Environment:
 
     # return next_state, reward, done
     def step(self, action: Action) -> Tuple[int, int, bool]:
-        """TODO: move vnf and return next_state, reward, done"""
         state = deepcopy(self._get_state())
         is_moved = self._move_vnf(action.vnf_id, action.srv_id)
         next_state = self._get_state()
@@ -48,7 +47,7 @@ class Environment:
             reward += next_zero_util_cnt**5
         # 반대로, 특정 server의 전원을 킨다면, reward를 감소 시킨다.
         # elif zero_util_cnt > next_zero_util_cnt:
-        #     reward -= 2
+        #     reward -= zero_util_cnt ** 5
         # TODO: 한쪽으로 SFC가 몰린다면, Reward를 추가한다.
         return reward
 
@@ -60,7 +59,6 @@ class Environment:
         return cnt
 
     def _get_state(self) -> State:
-        """TODO: define state"""
         state = State(
             edge=self._get_edge(),
             srvs=self._get_srvs(),
