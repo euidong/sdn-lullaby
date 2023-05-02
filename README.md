@@ -6,6 +6,7 @@ DQN based VM Consolidation code.
 
 - GPU : RTX2060
 - CUDA : 10.2
+- python : 3.8.16
 - torch : 1.6.0
 - platform : Window (Recommended)
 - IDE : Vscode (Recommended)
