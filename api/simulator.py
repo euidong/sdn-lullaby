@@ -9,7 +9,7 @@ class Simulator(Api):
     vnfs: List[VNF]
     sfcs: List[SFC]
 
-    def __init__(self, srv_n: int = 4, srv_cpu_cap: int = 8, srv_mem_cap: int = 32, max_vnf_num: int = 100, max_edge_load: float = 0.3) -> None:
+    def __init__(self, srv_n: int = 4, srv_cpu_cap: int = 8, srv_mem_cap: int = 32, max_vnf_num: int = 100, sfc_n: int = 4, max_edge_load: float = 0.3) -> None:
         """Intialize Simulator
 
         Args:
@@ -22,7 +22,8 @@ class Simulator(Api):
         self.srv_mem_cap = srv_mem_cap
         self.max_vnf_num = max_vnf_num
         self.max_edge_load = max_edge_load
-        
+        self.sfc_n = sfc_n
+
         self.edge = Edge(
             cpu_cap=srv_cpu_cap * srv_n,
             mem_cap=srv_mem_cap * srv_n,
@@ -42,12 +43,8 @@ class Simulator(Api):
                 vnfs=[],
             ))
         
-    def reset(self, sfc_n: int = 4) -> None:
+    def reset(self) -> None:
         """Generate random VNFs and put them into servers
-
-        Args:
-            sfc_n (int, optional): number of SFCs. Defaults to 4.
-            max_edge_load (float, optional): maximum edge load. Defaults to 0.3.
         """
 
         # 초기화
@@ -68,9 +65,9 @@ class Simulator(Api):
 
         # 최소한 하나의 VNF(CPU=1, Mem=1)을 가진 SFC를 생성
         # 최대한 각 서버에 골고루 분배
-        sfcs = [SFC(id=i, vnfs=[]) for i in range(sfc_n)]
+        sfcs = [SFC(id=i, vnfs=[]) for i in range(self.sfc_n)]
         vnf_cnt = 0
-        for i in range(sfc_n):
+        for i in range(self.sfc_n):
             srv_id = i % len(self.srvs)
             vnf = VNF(
                 id=i, 
@@ -103,7 +100,7 @@ class Simulator(Api):
             vnf = VNF(id=vnf_cnt, 
                       cpu_req=vnf_type[0],
                       mem_req=vnf_type[1],
-                      sfc_id=np.random.randint(sfc_n),
+                      sfc_id=np.random.randint(self.sfc_n),
                       srv_id=-1
                       )
             
@@ -166,7 +163,7 @@ class Simulator(Api):
                     self.srvs[srv_id].vnfs.append(vnf)
                     self.srvs[srv_id].cpu_load += vnf.cpu_req
                     self.srvs[srv_id].mem_load += vnf.mem_req
-                    
+
                     srv.vnfs.remove(vnf)
                     srv.cpu_load -= vnf.cpu_req
                     srv.mem_load -= vnf.mem_req

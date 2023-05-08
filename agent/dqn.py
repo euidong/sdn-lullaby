@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-import torch.nn.functional as F
+import torch.nn as nn
 from agent.model import NN
 from dataType import State, Action, Scene
 from typing import Deque
@@ -11,8 +11,8 @@ import itertools
 class DQNAgent:
     MAX_MEMORY_LEN = 1000
     BATCH_SIZE = 32
-    vm_selection_input_num = 10
-    vm_placement_input_num = 10
+    vm_selection_input_num = 11
+    vm_placement_input_num = 11
     memory: Deque[Scene]
 
     def __init__(self, vnf_num: int, srv_num: int, epsilon: float = 0.5, alpha=0.1, gamma=0.1) -> None:
@@ -34,6 +34,7 @@ class DQNAgent:
             self.vm_selection_model.parameters(), lr=0.001)
         self.vm_placement_optimzer = torch.optim.Adam(
             self.vm_placement_model.parameters(), lr=0.001)
+        self.loss_fn = nn.MSELoss()
 
     def decide_action(self, state: State, duration: int) -> Action:
         vm_s_in = self._convert_state_to_vm_selection_input(state)
@@ -115,7 +116,7 @@ class DQNAgent:
         self.vm_selection_model.train()
 
         # loss = distance between state-action value and next_state-max-action * gamma + reward
-        vm_selection_loss = F.smooth_l1_loss(
+        vm_selection_loss = self.loss_fn(
             vm_selection_q, vm_selection_expect_q)
 
         # update model
@@ -127,7 +128,7 @@ class DQNAgent:
         self.vm_placement_model.train()
 
         # loss = distance between state-action value and next_state-max-action * gamma + reward
-        vm_placement_loss = F.smooth_l1_loss(
+        vm_placement_loss = self.loss_fn(
             vm_placement_q, vm_placement_expect_q)
 
         # update model
@@ -137,16 +138,16 @@ class DQNAgent:
 
     def save(self) -> None:
         torch.save(self.vm_selection_model.state_dict(),
-                   "data/vm_selection_model.pth")
+                   "param/vm_selection_model.pth")
         torch.save(self.vm_placement_model.state_dict(),
-                   "data/vm_placement_model.pth")
+                   "param/vm_placement_model.pth")
 
     def load(self) -> None:
         self.vm_selection_model.load_state_dict(
-            torch.load("data/vm_selection_model.pth"))
+            torch.load("param/vm_selection_model.pth"))
         self.vm_selection_model.eval()
         self.vm_placement_model.load_state_dict(
-            torch.load("data/vm_placement_model.pth"))
+            torch.load("param/vm_placement_model.pth"))
         self.vm_placement_model.eval()
 
     def _convert_state_to_vm_selection_input(self, state: State) -> torch.Tensor:
@@ -154,7 +155,7 @@ class DQNAgent:
             self.vnf_num, self.vm_selection_input_num)
         for vnf in state.vnfs:
             vm_selection_input[vnf.id] = torch.tensor([
-                vnf.cpu_req, vnf.mem_req,
+                vnf.cpu_req, vnf.mem_req, vnf.sfc_id,
                 state.srvs[vnf.srv_id].cpu_cap, state.srvs[vnf.srv_id].mem_cap,
                 state.srvs[vnf.srv_id].cpu_load, state.srvs[vnf.srv_id].mem_load,
                 state.edge.cpu_cap, state.edge.mem_cap,
@@ -167,7 +168,7 @@ class DQNAgent:
             self.srv_num, self.vm_placement_input_num)
         for srv in state.srvs:
             vm_placement_input[srv.id] = torch.tensor([
-                state.vnfs[vm_id].cpu_req, state.vnfs[vm_id].mem_req,
+                state.vnfs[vm_id].cpu_req, state.vnfs[vm_id].mem_req, state.vnfs[vm_id].sfc_id,
                 srv.cpu_cap, srv.mem_cap, srv.cpu_load, srv.mem_load,
                 state.edge.cpu_cap, state.edge.mem_cap, state.edge.cpu_load, state.edge.mem_load
             ])

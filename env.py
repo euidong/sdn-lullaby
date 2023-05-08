@@ -9,15 +9,15 @@ class Environment:
         self.api = api
 
     # return next_state, reward, done
-    def step(self, action: Action) -> Tuple[int, int, bool]:
-        state = deepcopy(self._get_state())
+    def step(self, action: Action) -> Tuple[State, int, bool]:
+        state = self._get_state()
         is_moved = self._move_vnf(action.vnf_id, action.srv_id)
         next_state = self._get_state()
         reward = self._calc_reward(is_moved, state, next_state)
         done = False
         return (next_state, reward, done)
 
-    def reset(self) -> int:
+    def reset(self) -> State:
         self.api.reset()
         return self._get_state()
 
@@ -40,15 +40,22 @@ class Environment:
         # if not is_moved:
         #     return -1
         reward = 0
+        # 만약, 특정 server의 전원이 꺼졌다면, reward를 더 준다.
+        # 반대라면, reward를 감소 시킨다.
         zero_util_cnt = self._get_zero_util_cnt(state)
         next_zero_util_cnt = self._get_zero_util_cnt(next_state)
-        # 만약, 특정 server의 전원이 꺼졌다면, reward를 더 준다.
         if zero_util_cnt < next_zero_util_cnt:
-            reward += next_zero_util_cnt**5
-        # 반대로, 특정 server의 전원을 킨다면, reward를 감소 시킨다.
+            reward += next_zero_util_cnt ** 5
         # elif zero_util_cnt > next_zero_util_cnt:
         #     reward -= zero_util_cnt ** 5
-        # TODO: 한쪽으로 SFC가 몰린다면, Reward를 추가한다.
+        # 만약, 한쪽으로 SFC가 몰린다면, Reward를 추가한다.
+        # 반대라면, reward를 감소 시킨다.
+        sfc_cnt_in_same_srv = self._get_sfc_cnt_in_same_srv(state)
+        next_sfc_cnt_in_same_srv = self._get_sfc_cnt_in_same_srv(next_state)
+        if sfc_cnt_in_same_srv < next_sfc_cnt_in_same_srv:
+            reward += next_sfc_cnt_in_same_srv ** 5
+        # elif sfc_cnt_in_same_srv > next_sfc_cnt_in_same_srv:
+        #     reward -= sfc_cnt_in_same_srv ** 5
         return reward
 
     def _get_zero_util_cnt(self, state: State) -> int:
@@ -57,12 +64,25 @@ class Environment:
             if len(srv.vnfs) == 0:
                 cnt += 1
         return cnt
+    
+    def _get_sfc_cnt_in_same_srv(self, state: State) -> int:
+        cnt = 0
+        for sfc in state.sfcs:
+            if len(sfc.vnfs) == 0:
+                continue
+            cnt += 1
+            srv_id = sfc.vnfs[0].srv_id
+            for vnf in sfc.vnfs:
+                if srv_id != vnf.srv_id:
+                    cnt -= 1
+                    break
+        return cnt
 
     def _get_state(self) -> State:
-        state = State(
+        state = deepcopy(State(
             edge=self._get_edge(),
             srvs=self._get_srvs(),
             vnfs=self._get_vnfs(),
             sfcs=self._get_sfcs(),
-        )
+        ))
         return state
