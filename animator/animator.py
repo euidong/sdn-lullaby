@@ -8,6 +8,7 @@ from typing import List, Tuple, Optional
 plt.rcParams['animation.ffmpeg_path'] = r'C:\\ffmpeg-6.0-essentials_build\\bin\\ffmpeg.exe'
 
 class Animator:
+    FPS = 4
     def __init__(self, srv_n, srv_cpu_cap, srv_mem_cap, sfc_n, vnf_n, history: List[Tuple[State, Optional[Action]]]):
         self.srv_n = srv_n
         self.sfc_n = sfc_n
@@ -48,7 +49,7 @@ class Animator:
         self.legend = fig.legend(handles=handles)
         self.suptitle = fig.suptitle('', fontweight='bold')
 
-        self.writer = FFMpegWriter(fps=2)
+        self.writer = FFMpegWriter(fps=self.FPS)
 
     def animate(self, i):
         state, action = self.history[i]
@@ -56,7 +57,7 @@ class Animator:
 
     def save(self, path):
         anim = FuncAnimation(self.fig, self.animate,
-                             frames=len(self.history), interval=500)
+                             frames=len(self.history), interval=1000/self.FPS)
         
         anim.save(path, writer=self.writer)
 

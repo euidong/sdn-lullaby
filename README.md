@@ -2,6 +2,19 @@
 
 DQN based VM Consolidation code.
 
+<div>
+  <img width="49.3%" src="/doc/episode0.gif">
+  <img width="49.3%" src="/doc/episode950.gif">
+</div>
+
+Left gif show episode 0 result, Right one show episode 950 result.
+
+- \# of SRV : 4
+- \# of VNF : Random
+- \# of SFC : 4
+- Each Server CPU Capacity : 8
+- Each Server Memory Capacity : 32
+
 ## Dependency
 
 - GPU : RTX2060
