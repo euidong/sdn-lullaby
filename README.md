@@ -2,6 +2,8 @@
 
 DQN based VM Consolidation code.
 
+Below images show CPU, Memory load by VM on each server after each action from this model.
+
 <div>
   <img width="49.3%" src="/doc/episode0.gif">
   <img width="49.3%" src="/doc/episode950.gif">
@@ -29,9 +31,11 @@ Left gif show episode 0 result, Right one show episode 950 result.
 
 ### 1. Install ffmpeg
 
+Install ffmpeg program 
+
 <https://ffmpeg.org/download.html>
 
-change below code in animator/animator.py
+and change below code in animator/animator.py to your installed ffmpeg program path.
 
 ```python
 plt.rcParams['animation.ffmpeg_path'] = r'C:\\ffmpeg-6.0-essentials_build\\bin\\ffmpeg.exe'
