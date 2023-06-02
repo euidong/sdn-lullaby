@@ -37,8 +37,8 @@ class Animator:
             i), edgecolor='black', linewidth=2) for _ in range(vnf_n)] for i in range(sfc_n)]
         self.mem_bars = [[axs[1].bar(self.srv_idxs, np.zeros(srv_n), color=self.cmap(
             i), edgecolor='black', linewidth=2) for _ in range(vnf_n)] for i in range(sfc_n)]
-        self.cpu_bar_texts = [[[axs[0].text(0, 0, '', ha='center', va='center') for _ in range(srv_n)] for _ in range(vnf_n)] for _ in range(srv_n)]
-        self.mem_bar_texts = [[[axs[1].text(0, 0, '', ha='center', va='center') for _ in range(srv_n)] for _ in range(vnf_n)] for _ in range(srv_n)]
+        self.cpu_bar_texts = [[[axs[0].text(0, 0, '', ha='center', va='center') for _ in range(srv_n)] for _ in range(vnf_n)] for _ in range(sfc_n)]
+        self.mem_bar_texts = [[[axs[1].text(0, 0, '', ha='center', va='center') for _ in range(srv_n)] for _ in range(vnf_n)] for _ in range(sfc_n)]
         
         axs[0].xaxis.set_ticks(self.srv_idxs)
         axs[1].xaxis.set_ticks(self.srv_idxs)
