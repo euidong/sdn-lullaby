@@ -4,7 +4,7 @@ import torch.nn as nn
 from agent.model import NN
 from dataType import State, Action, Scene, Server
 from agent.memory import Memory
-from typing import List
+from typing import List, Dict
 
 
 class DQNAgent:
@@ -13,7 +13,7 @@ class DQNAgent:
     vm_selection_input_num = 11
     vm_placement_input_num = 11
 
-    def __init__(self, srv_num: int, epsilon: float = 0.5, alpha=0.1, gamma=0.1) -> None:
+    def __init__(self, srv_num: int, epsilon: float = 0.5, alpha=0.1, gamma=0.9) -> None:
         self.srv_num = srv_num
         self.epsilon = epsilon
         self.alpha = alpha
@@ -27,14 +27,15 @@ class DQNAgent:
         self.vm_placement_model = NN(
             self.vm_placement_input_num, 1).to(self.device)
         self.vm_selection_optimizer = torch.optim.Adam(
-            self.vm_selection_model.parameters(), lr=0.001)
+            self.vm_selection_model.parameters(), lr=5e-4)
         self.vm_placement_optimzer = torch.optim.Adam(
-            self.vm_placement_model.parameters(), lr=0.001)
+            self.vm_placement_model.parameters(), lr=5e-4)
         self.loss_fn = nn.MSELoss()
         self.prev_vnf_num = None
 
     def decide_action(self, state: State, duration: int) -> Action:
-        vm_s_in = self._convert_state_to_vm_selection_input(state)
+        possible_actions = self._get_possible_actions(state)
+        vm_s_in = self._convert_state_to_vm_selection_input(state, possible_actions)
         vnf_num = len(state.vnfs)
         is_random = np.random.uniform() < self.epsilon / duration
         if is_random:
@@ -45,7 +46,8 @@ class DQNAgent:
                 vm_s_out = self.vm_selection_model(
                     vm_s_in.unsqueeze(0))[0].max(1)[1]
         vm_p_in = self._convert_state_to_vm_placement_input(
-            state, int(vm_s_out))
+            state, int(vm_s_out), possible_actions[int(vm_s_out)]
+        )
         if is_random:
             vm_p_out = torch.tensor([np.random.choice(self.srv_num)])
         else:
@@ -149,52 +151,63 @@ class DQNAgent:
             torch.load("param/vm_placement_model.pth"))
         self.vm_placement_model.eval()
 
-    def _convert_state_to_vm_selection_input(self, state: State) -> torch.Tensor:
+    def _convert_state_to_vm_selection_input(self, state: State, possible_actions: Dict[int, List[int]]) -> torch.Tensor:
         vnf_num = len(state.vnfs)
         vm_selection_input = torch.zeros(vnf_num, self.vm_selection_input_num)
         for vnf in state.vnfs:
-            vm_selection_input[vnf.id] = torch.tensor([
-                vnf.cpu_req, vnf.mem_req, vnf.sfc_id,
-                state.srvs[vnf.srv_id].cpu_cap, state.srvs[vnf.srv_id].mem_cap,
-                state.srvs[vnf.srv_id].cpu_load, state.srvs[vnf.srv_id].mem_load,
-                state.edge.cpu_cap, state.edge.mem_cap,
-                state.edge.cpu_load, state.edge.mem_load,
-            ])
+            if len(possible_actions[vnf.id]) == 0:
+                vm_selection_input[vnf.id] = torch.tensor([
+                    0, 0, 0,
+                    0, 0,
+                    0, 0,
+                    state.edge.cpu_cap, state.edge.mem_cap,
+                    state.edge.cpu_load, state.edge.mem_load,
+                ])
+            else:
+                vm_selection_input[vnf.id] = torch.tensor([
+                    vnf.cpu_req, vnf.mem_req, vnf.sfc_id,
+                    state.srvs[vnf.srv_id].cpu_cap, state.srvs[vnf.srv_id].mem_cap,
+                    state.srvs[vnf.srv_id].cpu_load, state.srvs[vnf.srv_id].mem_load,
+                    state.edge.cpu_cap, state.edge.mem_cap,
+                    state.edge.cpu_load, state.edge.mem_load,
+                ])
         return vm_selection_input.to(self.device)
 
-    def _convert_state_to_vm_placement_input(self, state: State, vm_id: int) -> torch.Tensor:
+    def _convert_state_to_vm_placement_input(self, state: State, vm_id: int, possible_srvs: List[int]) -> torch.Tensor:
         vm_placement_input = torch.zeros(
             self.srv_num, self.vm_placement_input_num)
         for srv in state.srvs:
-            vm_placement_input[srv.id] = torch.tensor([
-                state.vnfs[vm_id].cpu_req, state.vnfs[vm_id].mem_req, state.vnfs[vm_id].sfc_id,
-                srv.cpu_cap, srv.mem_cap, srv.cpu_load, srv.mem_load,
-                state.edge.cpu_cap, state.edge.mem_cap, state.edge.cpu_load, state.edge.mem_load
-            ])
+            if srv.id in possible_srvs:
+                vm_placement_input[srv.id] = torch.tensor([
+                    0,0,0,0,
+                    state.vnfs[vm_id].cpu_req, state.vnfs[vm_id].mem_req, state.vnfs[vm_id].sfc_id,
+                    state.edge.cpu_cap, state.edge.mem_cap, state.edge.cpu_load, state.edge.mem_load
+                ])
+            else:
+                vm_placement_input[srv.id] = torch.tensor([
+                    srv.cpu_cap, srv.mem_cap, srv.cpu_load, srv.mem_load,
+                    state.vnfs[vm_id].cpu_req, state.vnfs[vm_id].mem_req, state.vnfs[vm_id].sfc_id,
+                    state.edge.cpu_cap, state.edge.mem_cap, state.edge.cpu_load, state.edge.mem_load
+                ])
         return vm_placement_input.to(self.device)
 
-    # CHECK: version 2
-    # Below code is version2 code.
-    # def _convert_state_to_vm_placement_input(self, state: State, vm_id: int) -> torch.Tensor:
-    #     vm_placement_input = torch.zeros(
-    #         self.srv_num, self.vm_placement_input_num)
-    #     for srv in state.srvs:
-    #         if self._is_possible(srv, vm_id, state.vnfs[vm_id].cpu_req, state.vnfs[vm_id].mem_req):
-    #             vm_placement_input[srv.id] = torch.tensor([
-    #                 state.vnfs[vm_id].cpu_req, state.vnfs[vm_id].mem_req, state.vnfs[vm_id].sfc_id,
-    #                 srv.cpu_cap, srv.mem_cap, srv.cpu_load, srv.mem_load,
-    #                 state.edge.cpu_cap, state.edge.mem_cap, state.edge.cpu_load, state.edge.mem_load
-    #             ])
-    #         else:
-    #             vm_placement_input[srv.id] = torch.zeros(self.vm_placement_input_num)
-    #     return vm_placement_input.to(self.device)
+    def _get_possible_actions(self, state: State) -> Dict[int, List[int]]:
+        '''return possible actions for each state
 
-    # def _is_possible(self, srv: Server, vm_id: int, vm_cpu_req, vm_mem_req) -> bool:
-    #     if srv.cpu_cap < srv.cpu_load + vm_cpu_req:
-    #         return False
-    #     if srv.mem_cap < srv.mem_load + vm_mem_req:
-    #         return False
-    #     for vnf in srv.vnfs:
-    #         if vnf.id == vm_id:
-    #             return False
-    #     return True
+        Args:
+            state (State): state
+
+        Returns:
+            Dict[int, List[int]]: possible actions
+                                     ex) {vnfId: [srvId1, srvId2, ...], vnfId2: [srvId1, srvId2, ...], ...}
+        '''
+        possible_actions = {}
+        for vnf in state.vnfs:
+            possible_actions[vnf.id] = []
+            for srv in state.srvs:
+                # 동일한 srv로 다시 전송하는 것 방지
+                if vnf.srv_id == srv.id: continue
+                # capacity 확인
+                if srv.cpu_cap - srv.cpu_load < vnf.cpu_req or srv.mem_cap - srv.mem_load < vnf.mem_req: continue
+                possible_actions[vnf.id].append(srv.id)
+        return possible_actions
