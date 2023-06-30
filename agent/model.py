@@ -37,7 +37,7 @@ class Block(nn.Module):
         self.num_heads = num_heads
 
         self.fc1 = nn.Linear(input_size, 3 * input_size)
-        self.mha = nn.MultiheadAttention(input_size, num_heads=num_heads)
+        self.mha = nn.MultiheadAttention(input_size, num_heads=num_heads, batch_first=True)
         self.norm1 = nn.BatchNorm1d(input_size)
         self.fc2 = nn.Linear(input_size, input_size)
         self.relu = nn.ReLU()

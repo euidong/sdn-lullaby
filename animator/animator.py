@@ -5,8 +5,6 @@ from matplotlib.animation import FuncAnimation, FFMpegWriter
 import matplotlib.patches as mpatches
 from typing import List, Tuple, Optional
 
-plt.rcParams['animation.ffmpeg_path'] = r'C:\\ffmpeg-6.0-essentials_build\\bin\\ffmpeg.exe'
-
 class Animator:
     FPS = 4
     def __init__(self, srv_n, srv_cpu_cap, srv_mem_cap, sfc_n, vnf_n, history: List[Tuple[State, Optional[Action]]]):

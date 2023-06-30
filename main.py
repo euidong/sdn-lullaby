@@ -41,7 +41,7 @@ def main():
             "zero_util_cnt": env._get_zero_util_cnt(state),
             "sfc_cnt_in_same_srv": env._get_sfc_cnt_in_same_srv(state),
         }
-        max_episode_len = len(state.vnfs) * srv_n
+        max_episode_len = env.max_episode_steps
         for step in range(max_episode_len):
             action = agent.decide_action(state, duration=episode // 10 + 1)
             history.append((state, action))

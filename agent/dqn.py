@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 from agent.model import NN
-from dataType import State, Action, Scene, Server
+from dataType import State, Action, Scene
 from agent.memory import Memory
 from typing import List, Dict
 
