@@ -8,14 +8,15 @@ from typing import List, Dict
 
 
 class DQNAgent:
-    MAX_MEMORY_LEN = 1000
+    MAX_MEMORY_LEN = 10_000
     BATCH_SIZE = 32
     vm_selection_input_num = 11
     vm_placement_input_num = 11
 
-    def __init__(self, srv_num: int, epsilon: float = 0.5, alpha=0.1, gamma=0.9) -> None:
+    def __init__(self, srv_num: int, init_epsilon: float = 0.5, final_epsilon: float = 0.1, vnf_s_lr: float = 0.01, vnf_p_lr: float = 0.01, alpha=0.1, gamma=1.0) -> None:
         self.srv_num = srv_num
-        self.epsilon = epsilon
+        self.epsilon = init_epsilon
+        self.final_epsilon = final_epsilon
         self.alpha = alpha
         self.gamma = gamma
         self.memory = Memory(self.BATCH_SIZE, self.MAX_MEMORY_LEN)
@@ -23,38 +24,48 @@ class DQNAgent:
             "cuda:0" if torch.cuda.is_available() else "cpu")
 
         self.vm_selection_model = NN(
-            self.vm_selection_input_num, 1).to(self.device)
+            self.vm_selection_input_num, 1, num_layers=4).to(self.device)
         self.vm_placement_model = NN(
-            self.vm_placement_input_num, 1).to(self.device)
+            self.vm_placement_input_num, 1, num_layers=4).to(self.device)
         self.vm_selection_optimizer = torch.optim.Adam(
-            self.vm_selection_model.parameters(), lr=5e-4)
+            self.vm_selection_model.parameters(), lr=vnf_s_lr)
         self.vm_placement_optimzer = torch.optim.Adam(
-            self.vm_placement_model.parameters(), lr=5e-4)
-        self.loss_fn = nn.MSELoss()
+            self.vm_placement_model.parameters(), lr=vnf_p_lr)
+        self.loss_fn = nn.HuberLoss()
         self.prev_vnf_num = None
 
-    def decide_action(self, state: State, duration: int) -> Action:
+    def decide_action(self, state: State, epsilon_sub: float) -> Action:
         possible_actions = self._get_possible_actions(state)
-        vm_s_in = self._convert_state_to_vm_selection_input(state, possible_actions)
+        vm_s_in = self._convert_state_to_vm_selection_input(state)
         vnf_num = len(state.vnfs)
-        is_random = np.random.uniform() < self.epsilon / duration
+        epsilon = max(self.final_epsilon, self.epsilon - epsilon_sub)
+        is_random = np.random.uniform() < epsilon
         if is_random:
-            vm_s_out = torch.tensor([np.random.choice(len(state.vnfs))])
+            possible_actions
+            vnf_idxs = []
+            for i in range(len(state.vnfs)):
+                if len(possible_actions[i]) > 0: vnf_idxs.append(i)
+            vm_s_out = torch.tensor(np.random.choice(vnf_idxs, 1))
         else:
             self.vm_selection_model.eval()
             with torch.no_grad():
                 vm_s_out = self.vm_selection_model(
-                    vm_s_in.unsqueeze(0))[0].max(1)[1]
-        vm_p_in = self._convert_state_to_vm_placement_input(
-            state, int(vm_s_out), possible_actions[int(vm_s_out)]
-        )
+                    vm_s_in.unsqueeze(0))[0]
+                vm_s_out = vm_s_out * torch.tensor([True if len(possible_actions[i]) > 0 else False for i in range(len(state.vnfs))]).to(self.device)
+                vm_s_out = vm_s_out.max(1)[1]
+        vm_p_in = self._convert_state_to_vm_placement_input(state, int(vm_s_out))
         if is_random:
-            vm_p_out = torch.tensor([np.random.choice(self.srv_num)])
+            srv_idxs = []
+            for i in range(len(state.srvs)):
+                if i in possible_actions[int(vm_s_out)]: srv_idxs.append(i)
+            vm_p_out = torch.tensor(np.random.choice(srv_idxs, 1))
         else:
             self.vm_placement_model.eval()
             with torch.no_grad():
                 vm_p_out = self.vm_placement_model(
-                    vm_p_in.unsqueeze(0))[0].max(1)[1]
+                    vm_p_in.unsqueeze(0))[0]
+                vm_p_out = vm_p_out * torch.tensor([True if i in possible_actions[int(vm_s_out)] else False for i in range(len(state.srvs))]).to(self.device)
+                vm_p_out = vm_p_out.max(1)[1]
         scene = Scene(
             vm_s_in=vm_s_in,
             vm_s_out=vm_s_out,
@@ -151,44 +162,28 @@ class DQNAgent:
             torch.load("param/vm_placement_model.pth"))
         self.vm_placement_model.eval()
 
-    def _convert_state_to_vm_selection_input(self, state: State, possible_actions: Dict[int, List[int]]) -> torch.Tensor:
+    def _convert_state_to_vm_selection_input(self, state: State) -> torch.Tensor:
         vnf_num = len(state.vnfs)
         vm_selection_input = torch.zeros(vnf_num, self.vm_selection_input_num)
         for vnf in state.vnfs:
-            if len(possible_actions[vnf.id]) == 0:
-                vm_selection_input[vnf.id] = torch.tensor([
-                    0, 0, 0,
-                    0, 0,
-                    0, 0,
-                    state.edge.cpu_cap, state.edge.mem_cap,
-                    state.edge.cpu_load, state.edge.mem_load,
-                ])
-            else:
-                vm_selection_input[vnf.id] = torch.tensor([
-                    vnf.cpu_req, vnf.mem_req, vnf.sfc_id,
-                    state.srvs[vnf.srv_id].cpu_cap, state.srvs[vnf.srv_id].mem_cap,
-                    state.srvs[vnf.srv_id].cpu_load, state.srvs[vnf.srv_id].mem_load,
-                    state.edge.cpu_cap, state.edge.mem_cap,
-                    state.edge.cpu_load, state.edge.mem_load,
-                ])
+            vm_selection_input[vnf.id] = torch.tensor([
+                vnf.cpu_req, vnf.mem_req, vnf.sfc_id,
+                state.srvs[vnf.srv_id].cpu_cap, state.srvs[vnf.srv_id].mem_cap,
+                state.srvs[vnf.srv_id].cpu_load, state.srvs[vnf.srv_id].mem_load,
+                state.edge.cpu_cap, state.edge.mem_cap,
+                state.edge.cpu_load, state.edge.mem_load,
+            ])
         return vm_selection_input.to(self.device)
 
-    def _convert_state_to_vm_placement_input(self, state: State, vm_id: int, possible_srvs: List[int]) -> torch.Tensor:
+    def _convert_state_to_vm_placement_input(self, state: State, vm_id: int) -> torch.Tensor:
         vm_placement_input = torch.zeros(
             self.srv_num, self.vm_placement_input_num)
         for srv in state.srvs:
-            if srv.id in possible_srvs:
-                vm_placement_input[srv.id] = torch.tensor([
-                    0,0,0,0,
-                    state.vnfs[vm_id].cpu_req, state.vnfs[vm_id].mem_req, state.vnfs[vm_id].sfc_id,
-                    state.edge.cpu_cap, state.edge.mem_cap, state.edge.cpu_load, state.edge.mem_load
-                ])
-            else:
-                vm_placement_input[srv.id] = torch.tensor([
-                    srv.cpu_cap, srv.mem_cap, srv.cpu_load, srv.mem_load,
-                    state.vnfs[vm_id].cpu_req, state.vnfs[vm_id].mem_req, state.vnfs[vm_id].sfc_id,
-                    state.edge.cpu_cap, state.edge.mem_cap, state.edge.cpu_load, state.edge.mem_load
-                ])
+            vm_placement_input[srv.id] = torch.tensor([
+                srv.cpu_cap, srv.mem_cap, srv.cpu_load, srv.mem_load,
+                state.vnfs[vm_id].cpu_req, state.vnfs[vm_id].mem_req, state.vnfs[vm_id].sfc_id,
+                state.edge.cpu_cap, state.edge.mem_cap, state.edge.cpu_load, state.edge.mem_load
+            ])
         return vm_placement_input.to(self.device)
 
     def _get_possible_actions(self, state: State) -> Dict[int, List[int]]:

@@ -12,11 +12,15 @@ def main():
     max_episode_num = 1_000
     anim_every_episode = 100
     max_vnf_num = 30
-    sfc_n = 4
-    srv_n = 8
+    sfc_n = 8
+    srv_n = 16
     srv_cpu_cap = 16
     srv_mem_cap = 96
     max_edge_load = 0.3
+    init_epsilon = 1.0
+    final_epsilon = 0.1
+    vnf_s_lr = 5e-4
+    vnf_p_lr = 5e-4
     api = Simulator(srv_n,
                     srv_cpu_cap,
                     srv_mem_cap,
@@ -24,7 +28,7 @@ def main():
                     sfc_n,
                     max_edge_load)
     env = Environment(api)
-    agent = Agent(srv_num=srv_n)
+    agent = Agent(srv_num=srv_n, init_epsilon=init_epsilon, final_epsilon=final_epsilon, vnf_s_lr=vnf_s_lr, vnf_p_lr=vnf_p_lr)
     training_start = time.time()
 
     ch_slp_srv = []
@@ -34,7 +38,7 @@ def main():
     init_sfc_in_same_srv = []
     final_sfc_in_same_srv = []
 
-    for episode in range(max_episode_num + 1):
+    for episode in range(1, max_episode_num + 1):
         history = []
         state = env.reset()
         init_value = {
@@ -43,7 +47,7 @@ def main():
         }
         max_episode_len = env.max_episode_steps
         for step in range(max_episode_len):
-            action = agent.decide_action(state, duration=episode // 10 + 1)
+            action = agent.decide_action(state, epsilon_sub=episode / max_episode_num)
             history.append((state, action))
             next_state, reward, done = env.step(action)
             agent.update(state, action, reward, next_state)
@@ -82,9 +86,9 @@ def main():
         history.append((state, None))
         if episode % anim_every_episode == 0:
             print('\x1b[2K' + debug_msg, flush=True)
-            animator = Animator(srv_n=srv_n, sfc_n=sfc_n, vnf_n=max_vnf_num,
-                                srv_mem_cap=srv_mem_cap, srv_cpu_cap=srv_cpu_cap, history=history)
-            animator.save(f'./result/episode{episode}.mp4')
+            # animator = Animator(srv_n=srv_n, sfc_n=sfc_n, vnf_n=max_vnf_num,
+            #                     srv_mem_cap=srv_mem_cap, srv_cpu_cap=srv_cpu_cap, history=history)
+            # animator.save(f'./result/episode{episode}.mp4')
     agent.save()
 
 

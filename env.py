@@ -23,7 +23,7 @@ class Environment:
         self.api.reset()
         self._elapsed_steps = 0
         self.init_state = self._get_state()
-        self.max_episode_steps = len(self.init_state.vnfs) * 2
+        self.max_episode_steps = len(self.init_state.vnfs)
         return self.init_state
 
     def _move_vnf(self, vnfId, srvId) -> None:
