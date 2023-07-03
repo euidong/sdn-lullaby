@@ -53,10 +53,10 @@ class Action:
 
 @dataclass
 class Scene:
-    vm_s_in: Optional[torch.Tensor]
-    vm_s_out: Optional[torch.Tensor]
-    vm_p_in: Optional[torch.Tensor]
-    vm_p_out: Optional[torch.Tensor]
+    vnf_s_in: Optional[torch.Tensor]
+    vnf_s_out: Optional[torch.Tensor]
+    vnf_p_in: Optional[torch.Tensor]
+    vnf_p_out: Optional[torch.Tensor]
     reward: Optional[torch.Tensor]
-    next_vm_s_in: Optional[torch.Tensor]
-    next_vm_p_in: Optional[torch.Tensor]
+    next_vnf_s_in: Optional[torch.Tensor]
+    next_vnf_p_in: Optional[torch.Tensor]

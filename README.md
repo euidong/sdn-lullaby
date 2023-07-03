@@ -1,8 +1,8 @@
-# VM Consolidation
+# VNF Consolidation
 
-DQN based VM Consolidation code.
+DRL based VNF Consolidation code.
 
-Below images show CPU, Memory load by VM on each server after each action from this model.
+Below images show CPU, Memory load by VNF on each server after each action from this model.
 
 <div>
   <img width="49.3%" src="/resource/episode0.gif">
@@ -32,8 +32,8 @@ Left gif show episode 0 result, Right one show episode 950 result.
 ### 1. Install python packages
 
 ```bash
-conda create --name vm-consolidation --file requirements.txt -c pytorch -c conda-forge -c anaconda
-conda activate vm-consolidation
+conda create --name vnf-consolidation --file requirements.txt -c pytorch -c conda-forge -c anaconda
+conda activate vnf-consolidation
 ```
 
 ### 2. Run agent code
