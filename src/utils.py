@@ -1,10 +1,11 @@
 import os
 
 import torch
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 
-from src.dataType import State
+from src.dataType import State, Action
+from src.animator.animator import Animator
 from src.const import VNF_SELECTION_IN_DIM, VNF_PLACEMENT_IN_DIM
 
 
@@ -29,7 +30,7 @@ def setup_mp_env():
     os.environ['OMP_NUM_THREADS'] = '1'
 
 def print_debug_info(debug_info: DebugInfo, refresh: bool = False):
-    debug_msg = "[{}] Episode {:05}, Step {:04.2f}, #SleepSrv ({:02.3f})({:02.3f}->{:02.3f}/{}), #SFCinSameSrv ({:02.3f})({:02.3f}->{:02.3f}/{}), #Exploration: {:.3f}".format(
+    debug_msg = "[{}] Episode {:05}, Step {:04.2f}, #SleepSrv ({:02.3f})({:02.3f}->{:02.3f}/{}), #SFCinSameSrv ({:02.3f})({:02.3f}->{:02.3f}/{}), Exploration: {:.3f}".format(
         debug_info.timestamp, debug_info.episode, debug_info.step,
         debug_info.mean_100_change_slp_srv, debug_info.mean_100_init_slp_srv, debug_info.mean_100_final_slp_srv, debug_info.srv_n,
         debug_info.mean_100_change_sfc_in_same_srv, debug_info.mean_100_init_sfc_in_same_srv, debug_info.mean_100_final_sfc_in_same_srv, debug_info.sfc_n,
@@ -121,3 +122,12 @@ def get_sfc_cnt_in_same_srv(state: State) -> int:
                 cnt -= 1
                 break
     return cnt
+
+def save_animation(
+        srv_n: int, sfc_n: int, vnf_n: int, 
+        srv_mem_cap: int, srv_cpu_cap: int, 
+        history: List[Tuple[State, Optional[Action]]],
+        path=f'./result/anim.mp4'):
+    animator = Animator(srv_n=srv_n, sfc_n=sfc_n, vnf_n=vnf_n,
+                        srv_mem_cap=srv_mem_cap, srv_cpu_cap=srv_cpu_cap, history=history)
+    animator.save(path)

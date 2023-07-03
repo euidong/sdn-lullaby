@@ -173,13 +173,13 @@ class PPOAgent:
 
 
     def save(self) -> None:
-        os.makedirs('./result/model', exist_ok=True)
-        torch.save(self.vnf_p_policy.state_dict(), './result/model/vnf_p_policy.pt')
-        torch.save(self.vnf_s_policy.state_dict(), './result/model/vnf_s_policy.pt')
+        os.makedirs('param/ppo', exist_ok=True)
+        torch.save(self.vnf_p_policy.state_dict(), 'param/ppo/vnf_p_policy.pt')
+        torch.save(self.vnf_s_policy.state_dict(), 'param/ppo/vnf_s_policy.pt')
 
     def load(self) -> None:
-        self.vnf_p_policy.load_state_dict(torch.load('./result/model/vnf_p_policy.pt'))
-        self.vnf_s_policy.load_state_dict(torch.load('./result/model/vnf_s_policy.pt'))
+        self.vnf_p_policy.load_state_dict(torch.load('param/ppo/vnf_p_policy.pt'))
+        self.vnf_s_policy.load_state_dict(torch.load('param/ppo/vnf_s_policy.pt'))
 
 def train():
     setup_mp_env()
@@ -270,10 +270,8 @@ def train():
     mp_env = MultiprocessEnvironment(seed, n_workers, make_env_fn)
 
     training_start = time.time()
-    for episode in range(0, max_episode_num, memory_max_episode_num):
+    for episode in range(memory_max_episode_num, max_episode_num+memory_max_episode_num, memory_max_episode_num):
         memory.fill(mp_env, agent)
-        debug_info = memory.get_debug_info(episode=episode, training_start=training_start)
-        print_debug_info(debug_info, refresh=True)
         vnf_s_ins, vnf_p_ins, actions, _, _, logpas, _ = memory.samples(all=True)
         for _ in range(update_epochs):
             agent.update_policy(*memory.samples())
@@ -283,6 +281,8 @@ def train():
                 break
         for _ in range(update_epochs):
             agent.update_value(*memory.samples())
+        debug_info = memory.get_debug_info(episode=episode, training_start=training_start)
+        print_debug_info(debug_info, refresh=True)
         memory.reset()
     agent.save()
 
