@@ -3,13 +3,13 @@ import time
 import torch
 from dataclasses import dataclass
 
-from dataType import State, Action
-from api.simulator import Simulator
-from agent.memory import EpisodeMemory
-from env import Environment, MultiprocessEnvironment
-from const import VNF_SELECTION_IN_DIM, VNF_PLACEMENT_IN_DIM
-from agent.model import PPOPolicyInfo, PPOValueInfo, PPOPolicy, PPOValue
-from utils import (
+from src.dataType import State, Action
+from src.api.simulator import Simulator
+from src.memory.episode import EpisodeMemory
+from src.env import Environment, MultiprocessEnvironment
+from src.const import VNF_SELECTION_IN_DIM, VNF_PLACEMENT_IN_DIM
+from src.model.ppo import PPOPolicyInfo, PPOValueInfo, PPOPolicy, PPOValue
+from src.utils import (
     get_device,
     setup_mp_env,
     logit_to_prob,
@@ -18,6 +18,7 @@ from utils import (
     convert_state_to_vnf_selection_input,
     convert_state_to_vnf_placement_input,
 )
+
 
 @dataclass
 class PPOAgentInfo:
@@ -39,7 +40,6 @@ class PPOAgentInfo:
     vnf_p_value_clip_range: float
     vnf_s_value_max_grad_norm: float
     vnf_p_value_max_grad_norm: float
-
 
 class PPOAgent:
     def __init__(self, info: PPOAgentInfo):
@@ -180,7 +180,6 @@ class PPOAgent:
     def load(self) -> None:
         self.vnf_p_policy.load_state_dict(torch.load('./result/model/vnf_p_policy.pt'))
         self.vnf_s_policy.load_state_dict(torch.load('./result/model/vnf_s_policy.pt'))
-
 
 def train():
     setup_mp_env()

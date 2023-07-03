@@ -1,6 +1,8 @@
 import unittest
-from api.simulator import Simulator
+
 import numpy as np
+
+from src.api.simulator import Simulator
 
 
 class TestSimulator(unittest.TestCase):

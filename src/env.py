@@ -1,12 +1,15 @@
-import torch
 import random
-import numpy as np
-from typing import List, Tuple
-from api.api import Api
-from dataType import Edge, Server, VNF, SFC, State, Action
 from copy import deepcopy
+from typing import List, Tuple
+
+import torch
+import numpy as np
 import torch.multiprocessing as mp
-from utils import get_zero_util_cnt, get_sfc_cnt_in_same_srv
+
+from src.api.api import Api
+from src.dataType import Edge, Server, VNF, SFC, State, Action
+from src.utils import get_zero_util_cnt, get_sfc_cnt_in_same_srv
+
 
 class Environment:
     def __init__(self, api: Api, seed: int = 927) -> None:

@@ -1,18 +1,16 @@
 import gc
 import time
-from collections import deque
-from typing import List, Optional
+from typing import List
 from copy import deepcopy
 
-import numpy as np
 import torch
-import itertools
+import numpy as np
 
-from const import EPS
-from dataType import State, Action
-from env import MultiprocessEnvironment
-from const import VNF_SELECTION_IN_DIM, VNF_PLACEMENT_IN_DIM
-from utils import (
+from src.const import EPS
+from src.dataType import State, Action
+from src.env import MultiprocessEnvironment
+from src.const import VNF_SELECTION_IN_DIM, VNF_PLACEMENT_IN_DIM
+from src.utils import (
     DebugInfo,
     get_zero_util_cnt,
     get_possible_actions,
@@ -22,32 +20,6 @@ from utils import (
     convert_state_to_vnf_placement_input,
 )
 
-class Memory:
-    def __init__(self, batch_size, max_memory_len=100_000):
-        self.batch_size = batch_size
-        self.max_memory_len = max_memory_len
-        self.memory = {}
-
-    def __len__(self) -> int:
-        return len(self.memory.keys())
-
-    def sample(self, vnf_no: Optional[int] = None) -> List[any]:
-        if not vnf_no:
-            vnf_no = np.random.choice(list(self.memory.keys()))
-        if vnf_no in self.memory:
-            return []
-        if len(self.memory[vnf_no]) < self.batch_size:
-            return []
-        return np.random.choice(list(itertools.islice(
-            self.memory[vnf_no], 0, len(self.memory[vnf_no]) - 1)), self.batch_size)
-
-    def append(self, vnf_no: int, data: any) -> None:
-        if not vnf_no in self.memory:
-            self.memory[vnf_no] = deque(maxlen=self.max_memory_len)
-        self.memory[vnf_no].append(data)
-
-    def last(self, vnf_no: int, n: int) -> List[any]:
-        return list(itertools.islice(self.memory[vnf_no], max(0, len(self.memory)-n), len(self.memory)))
 
 class EpisodeMemory:
     def __init__(self, 
@@ -282,4 +254,3 @@ class EpisodeMemory:
         self.episode_seconds = torch.zeros((self.memory_max_episode_num), dtype=torch.float64)
 
         self.cur_episode_idxs = torch.arange((self.n_workers), dtype=torch.int32)
-        

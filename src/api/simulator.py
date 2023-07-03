@@ -1,7 +1,10 @@
-from typing import List, Tuple
-from dataType import Edge, Server, VNF, SFC
-from api.api import Api
+from typing import List
+
 import numpy as np
+
+from src.api.api import Api
+from src.dataType import Edge, Server, VNF, SFC
+
 
 class Simulator(Api):
     edge: Edge

@@ -5,8 +5,8 @@ DQN based VM Consolidation code.
 Below images show CPU, Memory load by VM on each server after each action from this model.
 
 <div>
-  <img width="49.3%" src="/doc/episode0.gif">
-  <img width="49.3%" src="/doc/episode950.gif">
+  <img width="49.3%" src="/resource/episode0.gif">
+  <img width="49.3%" src="/resource/episode950.gif">
 </div>
 
 Left gif show episode 0 result, Right one show episode 950 result.
@@ -19,60 +19,43 @@ Left gif show episode 0 result, Right one show episode 950 result.
 
 ## Dependency
 
-- GPU : RTX2060
-- CUDA : 10.2
+- GPU : Quadro RTX 5000
+- CUDA : 11.8
 - python : 3.8.16
-- torch : 1.6.0
-- platform : Window (Recommended)
+- torch : 2.0.1
+- platform : Linux (for `torch.multiprocessing`)
 - IDE : Vscode (Recommended)
 - ffmpeg : (for animation rendering)
 
 ## Run
 
-### 1. Install ffmpeg
-
-Install ffmpeg program 
-
-<https://ffmpeg.org/download.html>
-
-and change below code in animator/animator.py to your installed ffmpeg program path.
-
-```python
-plt.rcParams['animation.ffmpeg_path'] = r'C:\\ffmpeg-6.0-essentials_build\\bin\\ffmpeg.exe'
-```
-
-### 2. Install python packages
+### 1. Install python packages
 
 ```bash
 conda create --name vm-consolidation --file requirements.txt -c pytorch -c conda-forge -c anaconda
 conda activate vm-consolidation
 ```
 
-### 3. Run main.py  
+### 2. Run agent code
+
+#### DQN Agent
 
 ```bash
-python main.py
+python -m src.agent.dqn.py
+```
+
+#### PPO Agent
+
+```bash
+python -m src.agent.ppo.py
 ```
 
 ## Project Structure
 
 ```plaintext
 |
-|- dataType.py  # Data Type code
-|- env.py       # Environment code
-|- main.py      # Main code
-|- agent/        # Agent 
-|  |- dqn.py    # DQN Agent
-|  |- model.py  # DQN Model
-|  `- ql.py     # Q-Learning based Agent (not working now) 
-|- api/
-|  |- api.py             # API Abstract Class
-|  |- niTestbed.py       # NI testbed api (for real testbed) (not implemented)
-|  |- simulator_test.py  # Simulator test code
-|  `- simulator.py       # Simulator api (for simulating)
-|- animator/
-|  |- animator.py       # Animator code
-|  `- animator_test.py  # Animator test code
-|- result/ # Result animations
-`- param/ # DQN model parameters
+|- src/       # Source Code
+|- param/     # Saved model parameters
+|- result/    # Result metrics & animations
+`- resource/  # Resource files
 ```

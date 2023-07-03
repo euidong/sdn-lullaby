@@ -4,8 +4,9 @@ import torch
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
 
-from dataType import State
-from const import VNF_SELECTION_IN_DIM, VNF_PLACEMENT_IN_DIM
+from src.dataType import State
+from src.const import VNF_SELECTION_IN_DIM, VNF_PLACEMENT_IN_DIM
+
 
 @dataclass
 class DebugInfo:

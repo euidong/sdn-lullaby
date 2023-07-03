@@ -5,10 +5,17 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: Module",
+      "name": "Train DQN",
       "type": "python",
       "request": "launch",
-      "module": "agent.ppo",
+      "module": "src.agent.dqn",
+      "justMyCode": true
+    },
+    {
+      "name": "Train PPO",
+      "type": "python",
+      "request": "launch",
+      "module": "src.agent.ppo",
       "justMyCode": true
     }
   ]

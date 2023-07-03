@@ -1,9 +1,10 @@
-import unittest
-from api.simulator import Simulator
-from env import Environment
-from dataType import Action
 import random
-from animator.animator import Animator
+import unittest
+
+from src.env import Environment
+from src.dataType import Action
+from src.api.simulator import Simulator
+from src.animator.animator import Animator
 
 
 class TestAnimator(unittest.TestCase):

@@ -1,9 +1,12 @@
-from dataType import State, Action
+from typing import List, Tuple, Optional
+
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation, FFMpegWriter
 import matplotlib.patches as mpatches
-from typing import List, Tuple, Optional
+from matplotlib.animation import FuncAnimation, FFMpegWriter
+
+from src.dataType import State, Action
+
 
 class Animator:
     FPS = 4
