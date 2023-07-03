@@ -6,11 +6,12 @@ from agent.dqn import DQNAgent as Agent
 from env import Environment
 from api.simulator import Simulator
 from animator.animator import Animator
+from utils import get_zero_util_cnt, get_sfc_cnt_in_same_srv
 
 
 def main():
     max_episode_num = 1_000
-    anim_every_episode = 100
+    debug_every_episode = 100
     max_vnf_num = 30
     sfc_n = 8
     srv_n = 16
@@ -42,8 +43,8 @@ def main():
         history = []
         state = env.reset()
         init_value = {
-            "zero_util_cnt": env._get_zero_util_cnt(state),
-            "sfc_cnt_in_same_srv": env._get_sfc_cnt_in_same_srv(state),
+            "zero_util_cnt": get_zero_util_cnt(state),
+            "sfc_cnt_in_same_srv": get_sfc_cnt_in_same_srv(state),
         }
         max_episode_len = env.max_episode_steps
         for step in range(max_episode_len):
@@ -55,8 +56,8 @@ def main():
             if done:
                 break
         result_value = {
-            "zero_util_cnt": env._get_zero_util_cnt(state),
-            "sfc_cnt_in_same_srv": env._get_sfc_cnt_in_same_srv(state),
+            "zero_util_cnt": get_zero_util_cnt(state),
+            "sfc_cnt_in_same_srv": get_sfc_cnt_in_same_srv(state),
         }
 
         ch_slp_srv.append(
@@ -84,7 +85,7 @@ def main():
         )
         print(debug_msg, end='\r', flush=True)
         history.append((state, None))
-        if episode % anim_every_episode == 0:
+        if episode % debug_every_episode == 0:
             print('\x1b[2K' + debug_msg, flush=True)
             # animator = Animator(srv_n=srv_n, sfc_n=sfc_n, vnf_n=max_vnf_num,
             #                     srv_mem_cap=srv_mem_cap, srv_cpu_cap=srv_cpu_cap, history=history)

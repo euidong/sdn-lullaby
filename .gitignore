@@ -1,3 +1,7 @@
 **__pycache__
 *.mp4
 !doc/*.mp4
+result/**
+param/**
+!result/.gitkeep
+!param/.gitkeep

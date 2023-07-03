@@ -1,11 +1,18 @@
+import torch
+import random
+import numpy as np
 from typing import List, Tuple
 from api.api import Api
 from dataType import Edge, Server, VNF, SFC, State, Action
 from copy import deepcopy
-
+import torch.multiprocessing as mp
+from utils import get_zero_util_cnt, get_sfc_cnt_in_same_srv
 
 class Environment:
-    def __init__(self, api: Api) -> None:
+    def __init__(self, api: Api, seed: int = 927) -> None:
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
         self.api = api
 
     # return next_state, reward, done
@@ -16,7 +23,6 @@ class Environment:
         is_moved = self._move_vnf(action.vnf_id, action.srv_id)
         next_state = self._get_state()
         reward = self._calc_reward(is_moved, state, next_state, done)
-        done = False
         return (next_state, reward, done)
 
     def reset(self) -> State:
@@ -46,32 +52,10 @@ class Environment:
             return 0
         srv_n = len(state.srvs)
         sfc_n = len(state.sfcs)
-        init_zero_util_cnt = self._get_zero_util_cnt(self.init_state)
-        init_sfc_cnt_in_same_srv = self._get_sfc_cnt_in_same_srv(self.init_state)
-        next_zero_util_cnt = self._get_zero_util_cnt(next_state)
-        next_sfc_cnt_in_same_srv = self._get_sfc_cnt_in_same_srv(next_state)
-        reward = (next_zero_util_cnt - init_zero_util_cnt) / srv_n + (next_sfc_cnt_in_same_srv - init_sfc_cnt_in_same_srv) / sfc_n
+        next_zero_util_cnt = get_zero_util_cnt(next_state)
+        next_sfc_cnt_in_same_srv = get_sfc_cnt_in_same_srv(next_state)
+        reward = next_zero_util_cnt / srv_n + next_sfc_cnt_in_same_srv / sfc_n
         return reward
-
-    def _get_zero_util_cnt(self, state: State) -> int:
-        cnt = 0
-        for srv in state.srvs:
-            if len(srv.vnfs) == 0:
-                cnt += 1
-        return cnt
-    
-    def _get_sfc_cnt_in_same_srv(self, state: State) -> int:
-        cnt = 0
-        for sfc in state.sfcs:
-            if len(sfc.vnfs) == 0:
-                continue
-            cnt += 1
-            srv_id = sfc.vnfs[0].srv_id
-            for vnf in sfc.vnfs:
-                if srv_id != vnf.srv_id:
-                    cnt -= 1
-                    break
-        return cnt
 
     def _get_state(self) -> State:
         state = deepcopy(State(
@@ -81,3 +65,64 @@ class Environment:
             sfcs=self._get_sfcs(),
         ))
         return state
+
+class MultiprocessEnvironment:
+    def __init__(self, seed, n_workers, make_env_fn):
+        self.seed = seed
+        self.make_env_fn = make_env_fn
+        self.n_workers = n_workers
+        # for message passing (send, recv)
+        # [0] parent_process_end
+        # [1] child_process_end
+        self.pipes = [mp.Pipe() for _ in range(n_workers)]
+        # make process with rank and message passing pipe
+        self.workers = [mp.Process(target=self._work, args=(rank, self.pipes[rank][1])) for rank in range(n_workers)]
+        [w.start() for w in self.workers]
+
+    def _close(self, **kwargs):
+        self._broadcast_msg(('close', kwargs))
+        [w.join() for w in self.workers]
+
+    def _send_msg(self, msg, rank):
+        parent_end = self.pipes[rank][0]
+        parent_end.send(msg)
+    
+    def _broadcast_msg(self, msg):
+        [self._send_msg(msg, rank) for rank in range(self.n_workers)]
+
+    def _work(self, rank, child_end):
+        env = self.make_env_fn(self.seed + rank)
+        while True:
+            cmd, kwargs = child_end.recv()
+            if cmd == 'step':
+                child_end.send(env.step(**kwargs))
+            elif cmd == 'reset':
+                child_end.send(env.reset(**kwargs))
+            elif cmd == 'close':
+                del env
+                child_end.close()
+                break
+            else:
+                del env
+                child_end.close()
+                break
+
+    def reset(self, ranks=None, **kwargs):
+        if ranks is not None:
+            [self._send_msg(('reset', kwargs), rank) for rank in ranks]
+            return [self.pipes[rank][0].recv() for rank in ranks]
+        else:
+            self._broadcast_msg(('reset', kwargs))
+            return [self.pipes[rank][0].recv() for rank in range(self.n_workers)]
+
+    def step(self, actions):
+        assert len(actions) == self.n_workers
+
+        [self._send_msg(('step', {'action': actions[rank]}), rank) for rank in range(self.n_workers)]
+        next_states, rewards, dones = [], [], []
+        for rank in range(self.n_workers):
+            next_state, reward, done = self.pipes[rank][0].recv()
+            next_states.append(next_state)
+            rewards.append(reward)
+            dones.append(done)
+        return next_states, rewards, dones
