@@ -1,6 +1,6 @@
-# VNF Consolidation
+# SDN Lullaby
 
-DRL based VNF Consolidation code.
+Fully-DRL based VM Consolidation for SDN.
 
 Below images show CPU, Memory load by VNF on each server after each action from this model.
 
