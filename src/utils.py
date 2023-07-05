@@ -78,7 +78,7 @@ def get_possible_actions(state: State, max_vnf_num: int) -> Dict[int, List[int]]
         if len(state.vnfs) <= vnf_idx: continue
         vnf = state.vnfs[vnf_idx]
         for srv in state.srvs:
-            # 동일한 srv로 다시 전송하는 것 방지
+            # 이미 설치된 srv로 이동하는 action 막기
             if vnf.srv_id == srv.id: continue
             # capacity 확인
             if srv.cpu_cap - srv.cpu_load < vnf.cpu_req or srv.mem_cap - srv.mem_load < vnf.mem_req: continue

@@ -12,6 +12,7 @@ from src.env import MultiprocessEnvironment
 from src.const import VNF_SELECTION_IN_DIM, VNF_PLACEMENT_IN_DIM
 from src.utils import (
     DebugInfo,
+    setup_mp_env,
     get_zero_util_cnt,
     get_possible_actions,
     get_info_from_logits,
@@ -29,6 +30,7 @@ class EpisodeMemory:
                  srv_n: int, max_sfc_n: int, max_vnf_num: int,
                  vnf_s_in_dim: int = VNF_SELECTION_IN_DIM, vnf_p_in_dim: int = VNF_PLACEMENT_IN_DIM,
                 ):
+        setup_mp_env()
         self.n_workers = n_workers
         self.batch_size = batch_size
         self.gamma = gamma

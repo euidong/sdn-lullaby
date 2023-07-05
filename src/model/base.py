@@ -24,6 +24,7 @@ class Block(nn.Module):
             x: (batch_size, seq_len)
             attention_weights: (batch_size, num_heads, seq_len, seq_len)
         '''
+        batch_len = x.size(0)
         seq_len = x.size(1)
 
         qkv = self.fc1(x)
@@ -32,11 +33,12 @@ class Block(nn.Module):
         v = qkv[:, :, self.input_size * 2:]
         z, attention_weights = self.mha(q, k, v)
         x = x + z
-        x = torch.stack([self.norm1(x[:, i]) for i in range(seq_len)], dim=1)
+        
+        x = torch.stack([self.norm1(x[:, i]) if batch_len > 1 else x[:, i] for i in range(seq_len)], dim=1)
         z = self.fc2(x)
         z = self.relu(z)
         z = self.fc3(z)
         x = x + z
-        output = torch.stack([self.norm1(x[:, i]) for i in range(seq_len)], dim=1)
+        output = torch.stack([self.norm2(x[:, i]) if batch_len > 1 else x[:, i] for i in range(seq_len)], dim=1)
 
         return output, attention_weights

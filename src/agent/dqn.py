@@ -1,7 +1,7 @@
 import os
 import time
-from typing import List, Dict
 from dataclasses import dataclass
+from typing import List, Dict, Callable
 
 import torch
 import numpy as np
@@ -19,12 +19,16 @@ from src.utils import (
     save_animation,
     get_zero_util_cnt,
     get_sfc_cnt_in_same_srv,
+    get_possible_actions,
+    convert_state_to_vnf_selection_input,
+    convert_state_to_vnf_placement_input,
 )
 from src.const import VNF_PLACEMENT_IN_DIM, VNF_SELECTION_IN_DIM
 
 @dataclass
 class DQNAgentInfo:
     srv_n: int
+    max_vnf_num: int
     init_epsilon: float
     final_epsilon: float
     vnf_s_lr: float
@@ -34,7 +38,7 @@ class DQNAgentInfo:
     vnf_p_model_info: DQNValueInfo
 
 class DQNAgent:
-    MAX_MEMORY_LEN = 10_000
+    MAX_MEMORY_LEN = 1_000
     BATCH_SIZE = 32
     vnf_selection_input_num = VNF_SELECTION_IN_DIM
     vnf_placement_input_num = VNF_PLACEMENT_IN_DIM
@@ -53,19 +57,15 @@ class DQNAgent:
             self.vnf_placement_model.parameters(), lr=info.vnf_p_lr)
         self.loss_fn = nn.HuberLoss()
 
-        self.prev_vnf_num = None
-
     def get_exploration_rate(self, epsilon_sub: float) -> float:
         return max(self.info.final_epsilon, self.info.init_epsilon - epsilon_sub)
 
     def decide_action(self, state: State, epsilon_sub: float) -> Action:
-        possible_actions = self._get_possible_actions(state)
-        vnf_s_in = self._convert_state_to_vnf_selection_input(state)
-        vnf_num = len(state.vnfs)
+        possible_actions = get_possible_actions(state, self.info.max_vnf_num)
+        vnf_s_in = convert_state_to_vnf_selection_input(state, self.info.max_vnf_num)
         epsilon = self.get_exploration_rate(epsilon_sub)
         is_random = np.random.uniform() < epsilon
         if is_random:
-            possible_actions
             vnf_idxs = []
             for i in range(len(state.vnfs)):
                 if len(possible_actions[i]) > 0: vnf_idxs.append(i)
@@ -74,9 +74,9 @@ class DQNAgent:
             self.vnf_selection_model.eval()
             with torch.no_grad():
                 vnf_s_out = self.vnf_selection_model(vnf_s_in.unsqueeze(0))
-                vnf_s_out = vnf_s_out * torch.tensor([True if len(possible_actions[i]) > 0 else False for i in range(len(state.vnfs))]).to(self.device)
+                vnf_s_out = vnf_s_out + torch.tensor([0 if len(possible_actions[i]) > 0 else -torch.inf for i in range(len(possible_actions))]).to(self.device)
                 vnf_s_out = vnf_s_out.max(1)[1]
-        vnf_p_in = self._convert_state_to_vnf_placement_input(state, int(vnf_s_out))
+        vnf_p_in = convert_state_to_vnf_placement_input(state, int(vnf_s_out))
         if is_random:
             srv_idxs = []
             for i in range(len(state.srvs)):
@@ -86,7 +86,7 @@ class DQNAgent:
             self.vnf_placement_model.eval()
             with torch.no_grad():
                 vnf_p_out = self.vnf_placement_model(vnf_p_in.unsqueeze(0))
-                vnf_p_out = vnf_p_out * torch.tensor([True if i in possible_actions[int(vnf_s_out)] else False for i in range(len(state.srvs))]).to(self.device)
+                vnf_p_out = vnf_p_out + torch.tensor([0 if i in possible_actions[int(vnf_s_out)] else -torch.inf for i in range(len(state.srvs))]).to(self.device)
                 vnf_p_out = vnf_p_out.max(1)[1]
         scene = Scene(
             vnf_s_in=vnf_s_in,
@@ -98,18 +98,17 @@ class DQNAgent:
             next_vnf_s_in=None,  # this data will get from the env
         )
 
-        if vnf_num in self.memory.memory:
-            self.memory.memory[vnf_num][-1].next_vnf_s_in = vnf_s_in
-            self.memory.memory[vnf_num][-1].next_vnf_p_in = vnf_p_in
-        self.memory.append(vnf_num, scene)
-        self.prev_vnf_num = vnf_num
+        if len(self.memory) > 0:
+            self.memory.buffer[-1].next_vnf_s_in = vnf_s_in
+            self.memory.buffer[-1].next_vnf_p_in = vnf_p_in
+        self.memory.append(scene)
         return Action(
             vnf_id=int(vnf_s_out),
             srv_id=int(vnf_p_out),
         )
 
     def update(self, _state, _action, reward, _next_state) -> None:
-        self.memory.memory[self.prev_vnf_num][-1].reward = reward
+        self.memory.buffer[-1].reward = reward
         # sample a minibatch from memory
         scene_batch = self.memory.sample()
         if len(scene_batch) < self.BATCH_SIZE:
@@ -228,48 +227,18 @@ class DQNAgent:
                 possible_actions[vnf.id].append(srv.id)
         return possible_actions
 
-def train():
-    max_episode_num = 10_000
-    debug_every_episode = 500
-    max_vnf_num = 10
-    srv_n = 4
-    sfc_n = 4
-    srv_cpu_cap = 8
-    srv_mem_cap = 32
-    max_edge_load = 0.3
-    api = Simulator(srv_n,
-                    srv_cpu_cap,
-                    srv_mem_cap,
-                    max_vnf_num,
-                    sfc_n,
-                    max_edge_load)
-    env = Environment(api)
-
-    device = get_device()
-    agent_info = DQNAgentInfo(
-        srv_n=srv_n,
-        init_epsilon=1.0,
-        final_epsilon=0.0,
-        vnf_s_lr=1e-3,
-        vnf_p_lr=1e-3,
-        gamma=0.99,
-        vnf_s_model_info=DQNValueInfo(
-            in_dim=VNF_SELECTION_IN_DIM,
-            hidden_dim=32,
-            num_heads=4,
-            num_blocks=4,
-            device=device,
-        ),
-        vnf_p_model_info=DQNValueInfo(
-            in_dim=VNF_PLACEMENT_IN_DIM,
-            hidden_dim=32,
-            num_heads=4,
-            num_blocks=4,
-            device=device,
-        ),
-    )
-
-    agent = DQNAgent(agent_info)
+@dataclass
+class TrainArgs:
+    srv_n: int
+    sfc_n: int
+    max_vnf_num: int
+    seed: int
+    max_episode_num: int
+    debug_every_n_episode: int
+    evaluate_every_n_episode: int
+    
+def train(agent: DQNAgent, make_env_fn: Callable, args: TrainArgs):
+    env = make_env_fn(args.seed)
     training_start = time.time()
 
     ch_slp_srv = []
@@ -279,7 +248,7 @@ def train():
     init_sfc_in_same_srv = []
     final_sfc_in_same_srv = []
 
-    for episode in range(1, max_episode_num + 1):
+    for episode in range(1, args.max_episode_num + 1):
         history = []
         state = env.reset()
         init_value = {
@@ -287,7 +256,7 @@ def train():
             "sfc_cnt_in_same_srv": get_sfc_cnt_in_same_srv(state),
         }
         max_episode_len = env.max_episode_steps
-        epsilon_sub = episode / max_episode_num
+        epsilon_sub = (episode / args.max_episode_num) * 0.5
         for step in range(max_episode_len):
             action = agent.decide_action(state, epsilon_sub)
             history.append((state, action))
@@ -325,15 +294,84 @@ def train():
         )
         print_debug_info(debug_info, refresh=False)
         history.append((state, None))
-        if episode % debug_every_episode == 0:
+        if episode % args.debug_every_n_episode == 0:
             print_debug_info(debug_info, refresh=True)
-            os.makedirs('./result/dqn', exist_ok=True)
-            save_animation(
-                srv_n=srv_n, sfc_n=sfc_n, vnf_n=max_vnf_num,
-                srv_mem_cap=srv_mem_cap, srv_cpu_cap=srv_cpu_cap, 
-                history=history, path=f'./result/dqn/episode{episode}.mp4'
-            )
-    agent.save()
+        if episode % args.evaluate_every_n_episode == 0:
+            evaluate(agent, make_env_fn, seed=args.seed, file_name=f'episode{episode}')
+            
+
+def evaluate(agent: DQNAgent, make_env_fn: Callable, seed: int = 927, file_name: str = 'test'):
+    env = make_env_fn(seed)
+    state = env.reset()
+    history = []
+    while True:
+        action = agent.decide_action(state, 0)
+        history.append((state, action))
+        state, reward, done = env.step(action)
+        agent.memory.buffer[-1].reward = reward
+        if done:
+            break
+    history.append((state, None))
+    os.makedirs('./result/dqn', exist_ok=True)
+    save_animation(
+        srv_n=srv_n, sfc_n=sfc_n, vnf_n=max_vnf_num,
+        srv_mem_cap=srv_mem_cap, srv_cpu_cap=srv_cpu_cap, 
+        history=history, path=f'./result/dqn/{file_name}.mp4',
+    )
+
 
 if __name__ == '__main__':
-    train()
+    # Simulator Args
+    srv_n = 4
+    sfc_n = 4
+    max_vnf_num = 10
+    srv_cpu_cap = 8
+    srv_mem_cap = 32
+    max_edge_load = 0.3
+    seed=927
+    
+    make_env_fn = lambda seed : Environment(
+        api=Simulator(srv_n, srv_cpu_cap, srv_mem_cap, max_vnf_num, sfc_n, max_edge_load),
+        seed=seed,
+    )
+    device = get_device()
+    agent_info = DQNAgentInfo(
+        srv_n=srv_n,
+        max_vnf_num=max_vnf_num,
+        init_epsilon=0.5,
+        final_epsilon=0.0,
+        vnf_s_lr=1e-3,
+        vnf_p_lr=1e-3,
+        gamma=0.99,
+        vnf_s_model_info=DQNValueInfo(
+            in_dim=VNF_SELECTION_IN_DIM,
+            hidden_dim=32,
+            num_heads=4,
+            num_blocks=4,
+            device=device,
+        ),
+        vnf_p_model_info=DQNValueInfo(
+            in_dim=VNF_PLACEMENT_IN_DIM,
+            hidden_dim=32,
+            num_heads=4,
+            num_blocks=4,
+            device=device,
+        ),
+    )
+    agent = DQNAgent(agent_info)
+
+    train_args = TrainArgs(
+        srv_n=srv_n,
+        sfc_n=sfc_n,
+        max_vnf_num=max_vnf_num,
+        seed=seed,
+        max_episode_num=10_000,
+        debug_every_n_episode=500,
+        evaluate_every_n_episode=500
+    )
+
+    evaluate(agent, make_env_fn, seed=seed, file_name='init')
+    train(agent, make_env_fn, train_args)
+    evaluate(agent, make_env_fn, seed=seed, file_name='final')
+
+    agent.save()

@@ -36,7 +36,7 @@ class PPOValue(nn.Module):
         if len(x.shape) == 1:
             x = x.unsqueeze(0)
         if len(x.shape) == 2:
-            x = x.unsqueeze(1)
+            x = x.unsqueeze(0)
         x = x.to(self.device)
         return x
 
@@ -48,7 +48,7 @@ class PPOValue(nn.Module):
         x = self.conv1d(x)
         output = self.output_layer(x)
         output = output.squeeze()
-        return output    
+        return output
 
 @dataclass
 class PPOPolicyInfo:
@@ -66,7 +66,6 @@ class PPOPolicy(nn.Module):
 
         self.input_layer = nn.Linear(info.in_dim, info.hidden_dim)
         self.relu = nn.ReLU()
-        self.softmax = nn.Softmax()
 
         self.attention = nn.ModuleList()
         for _ in range(info.num_blocks):
@@ -80,7 +79,7 @@ class PPOPolicy(nn.Module):
         if len(x.shape) == 1:
             x = x.unsqueeze(0)
         if len(x.shape) == 2:
-            x = x.unsqueeze(1)
+            x = x.unsqueeze(0)
         x = x.to(self.device)
         return x
 

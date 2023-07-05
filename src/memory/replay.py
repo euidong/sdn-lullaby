@@ -6,28 +6,22 @@ import numpy as np
 
 
 class ReplayMemory:
-    def __init__(self, batch_size, max_memory_len=100_000):
+    def __init__(self, batch_size, max_memory_len=1_000):
         self.batch_size = batch_size
         self.max_memory_len = max_memory_len
-        self.memory = {}
+        self.buffer = deque(maxlen=max_memory_len)
 
     def __len__(self) -> int:
-        return len(self.memory.keys())
+        return len(self.buffer)
 
-    def sample(self, vnf_no: Optional[int] = None) -> List[any]:
-        if not vnf_no:
-            vnf_no = np.random.choice(list(self.memory.keys()))
-        if vnf_no in self.memory:
-            return []
-        if len(self.memory[vnf_no]) < self.batch_size:
+    def sample(self) -> List[any]:
+        if len(self.buffer) < self.batch_size:
             return []
         return np.random.choice(list(itertools.islice(
-            self.memory[vnf_no], 0, len(self.memory[vnf_no]) - 1)), self.batch_size)
+            self.buffer, 0, len(self.buffer) - 1)), self.batch_size)
 
-    def append(self, vnf_no: int, data: any) -> None:
-        if not vnf_no in self.memory:
-            self.memory[vnf_no] = deque(maxlen=self.max_memory_len)
-        self.memory[vnf_no].append(data)
+    def append(self, data: any) -> None:
+        self.buffer.append(data)
 
-    def last(self, vnf_no: int, n: int) -> List[any]:
-        return list(itertools.islice(self.memory[vnf_no], max(0, len(self.memory)-n), len(self.memory)))
+    def last(self, n: int) -> List[any]:
+        return list(itertools.islice(self.buffer, max(0, len(self.buffer)-n), len(self.buffer)))
