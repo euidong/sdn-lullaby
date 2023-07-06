@@ -212,7 +212,7 @@ def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs):
         VNF_SELECTION_IN_DIM, VNF_PLACEMENT_IN_DIM,
     )
     mp_env = MultiprocessEnvironment(args.seed, args.n_workers, make_env_fn)
-    debug_infos = pd.DataFrame([])
+    debug_infos = []
     training_start = time.time()
 
     highest_reward = -float('inf')
@@ -230,7 +230,7 @@ def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs):
             agent.update_value(*memory.samples())
         debug_info = memory.get_debug_info(episode=episode, training_start=training_start)
         print_debug_info(debug_info, refresh=True)
-        debug_infos.append(pd.DataFrame([debug_info]))
+        debug_infos.append(debug_info)
         memory.reset()
         os.makedirs('result/ppo', exist_ok=True)
         if episode % args.evaluate_every_n_episode == 0:
@@ -240,7 +240,7 @@ def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs):
             early_stop_cnt = 0
         if early_stop_cnt > args.early_stop_patience:
             break
-    debug_infos.to_scv('result/ppo/debug_info.csv', index=False)
+    pd.DataFrame(debug_infos).to_scv('result/ppo/debug_info.csv', index=False)
     memory.close()
 
 def evaluate(agent: PPOAgent, make_env_fn: Callable, seed: int = 927, file_name: str = 'test'):
