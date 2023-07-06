@@ -13,16 +13,26 @@ from src.const import VNF_SELECTION_IN_DIM, VNF_PLACEMENT_IN_DIM
 class DebugInfo:
     timestamp: str
     episode: int
-    step: int
+    mean_100_step: int
+    std_100_step: int
     mean_100_change_slp_srv: float
+    std_100_change_slp_srv: float
     mean_100_init_slp_srv: float
+    std_100_init_slp_srv: float
     mean_100_final_slp_srv: float
+    std_100_final_slp_srv: float
     srv_n: int
     mean_100_change_sfc_in_same_srv: float
+    std_100_change_sfc_in_same_srv: float
     mean_100_init_sfc_in_same_srv: float
+    std_100_init_sfc_in_same_srv: float
     mean_100_final_sfc_in_same_srv: float
+    std_100_final_sfc_in_same_srv: float
     sfc_n: int
     mean_100_exploration: float
+    std_100_exploration: float
+    mean_100_reward: float
+    std_100_reward: float
 
 def setup_mp_env():
     os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
@@ -30,11 +40,11 @@ def setup_mp_env():
     os.environ['OMP_NUM_THREADS'] = '1'
 
 def print_debug_info(debug_info: DebugInfo, refresh: bool = False):
-    debug_msg = "[{}] Episode {:05}, Step {:04.2f}, #SleepSrv ({:02.3f})({:02.3f}->{:02.3f}/{}), #SFCinSameSrv ({:02.3f})({:02.3f}->{:02.3f}/{}), Exploration: {:.3f}".format(
-        debug_info.timestamp, debug_info.episode, debug_info.step,
-        debug_info.mean_100_change_slp_srv, debug_info.mean_100_init_slp_srv, debug_info.mean_100_final_slp_srv, debug_info.srv_n,
-        debug_info.mean_100_change_sfc_in_same_srv, debug_info.mean_100_init_sfc_in_same_srv, debug_info.mean_100_final_sfc_in_same_srv, debug_info.sfc_n,
-        debug_info.mean_100_exploration,
+    debug_msg = "[{}] Episode {:05}, Step {:04.2f}\u00B1{:04.2f}, #SleepSrv ({:02.3f}\u00B1{:02.3f})({:02.3f}\u00B1{:02.3f}->{:02.3f}\u00B1{:02.3f}/{}), #SFCinSameSrv ({:02.3f}\u00B1{:02.3f})({:02.3f}\u00B1{:02.3f}->{:02.3f}\u00B1{:02.3f}/{}), Exploration: {:.3f}\u00B1{:02.3f}, Rewards: {:02.3f}\u00B1{:02.3f}".format(
+        debug_info.timestamp, debug_info.episode, debug_info.mean_100_step, debug_info.std_100_step,
+        debug_info.mean_100_change_slp_srv, debug_info.std_100_change_slp_srv, debug_info.mean_100_init_slp_srv, debug_info.mean_100_init_slp_srv, debug_info.mean_100_final_slp_srv, debug_info.std_100_final_slp_srv, debug_info.srv_n,
+        debug_info.mean_100_change_sfc_in_same_srv, debug_info.std_100_change_sfc_in_same_srv, debug_info.mean_100_init_sfc_in_same_srv, debug_info.std_100_init_sfc_in_same_srv, debug_info.mean_100_final_sfc_in_same_srv, debug_info.std_100_final_sfc_in_same_srv, debug_info.sfc_n,
+        debug_info.mean_100_exploration, debug_info.std_100_exploration, debug_info.mean_100_reward, debug_info.std_100_reward,
     )
     print(debug_msg, end='\r', flush=True)
     if refresh:

@@ -5,6 +5,7 @@ from typing import List, Dict, Callable
 
 import torch
 import numpy as np
+import pandas as pd
 import torch.nn as nn
 
 from src.model.dqn import DQNValueInfo, DQNValue
@@ -202,6 +203,10 @@ def train(agent: DQNAgent, make_env_fn: Callable, args: TrainArgs):
     ch_sfc_in_same_srv = []
     init_sfc_in_same_srv = []
     final_sfc_in_same_srv = []
+    steps = []
+    rewards = []
+    explorations = []
+    debug_infos = pd.DataFrame([])
 
     for episode in range(1, args.max_episode_num + 1):
         history = []
@@ -220,6 +225,9 @@ def train(agent: DQNAgent, make_env_fn: Callable, args: TrainArgs):
             state = next_state
             if done:
                 break
+        rewards.append(reward)
+        steps.append(step)
+        agent.get_exploration_rate(epsilon_sub)
         final_value = {
             "zero_util_cnt": get_zero_util_cnt(state),
             "sfc_cnt_in_same_srv": get_sfc_cnt_in_same_srv(state),
@@ -236,23 +244,36 @@ def train(agent: DQNAgent, make_env_fn: Callable, args: TrainArgs):
         debug_info = DebugInfo(
             timestamp=time.strftime("%H:%M:%S", time.gmtime(time.time() - training_start)),
             episode=episode,
-            step=step,
+            mean_100_step=np.mean(steps[-100:]),
+            std_100_step=np.std(steps[-100:]),
             mean_100_init_slp_srv=np.mean(init_slp_srv[-100:]),
+            std_100_init_slp_srv=np.std(init_slp_srv[-100:]),
             mean_100_final_slp_srv=np.mean(final_slp_srv[-100:]),
+            std_100_final_slp_srv=np.std(final_slp_srv[-100:]),
             mean_100_change_slp_srv=np.mean(ch_slp_srv[-100:]),
+            std_100_change_slp_srv=np.std(ch_slp_srv[-100:]),
             srv_n=srv_n,
             mean_100_init_sfc_in_same_srv=np.mean(init_sfc_in_same_srv[-100:]),
+            std_100_init_sfc_in_same_srv=np.std(init_sfc_in_same_srv[-100:]),
             mean_100_final_sfc_in_same_srv=np.mean(final_sfc_in_same_srv[-100:]),
+            std_100_final_sfc_in_same_srv=np.std(final_sfc_in_same_srv[-100:]),
             mean_100_change_sfc_in_same_srv=np.mean(ch_sfc_in_same_srv[-100:]),
+            std_100_change_sfc_in_same_srv=np.std(ch_sfc_in_same_srv[-100:]),
             sfc_n=sfc_n,
-            mean_100_exploration=agent.get_exploration_rate(epsilon_sub),
+            mean_100_exploration=np.mean(explorations[-100:]),
+            std_100_exploration=np.std(explorations[-100:]),
+            mean_100_reward=np.mean(rewards[-100:]),
+            std_100_reward=np.std(rewards[-100:]),
         )
+        debug_infos.append(pd.DataFrame([debug_info]))
         print_debug_info(debug_info, refresh=False)
         history.append((state, None))
         if episode % args.debug_every_n_episode == 0:
             print_debug_info(debug_info, refresh=True)
         if episode % args.evaluate_every_n_episode == 0:
             evaluate(agent, make_env_fn, seed=args.seed, file_name=f'episode{episode}')
+        
+    debug_infos.to_scv('result/dqn/debug_info.csv', index=False)
             
 
 def evaluate(agent: DQNAgent, make_env_fn: Callable, seed: int = 927, file_name: str = 'test'):

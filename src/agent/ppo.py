@@ -3,6 +3,7 @@ import time
 from typing import Callable
 
 import torch
+import pandas as pd
 from dataclasses import dataclass
 
 from src.dataType import State, Action
@@ -200,6 +201,7 @@ class TrainArgs:
     memory_max_episode_num: int
     evaluate_every_n_episode: int
     policy_update_early_stop_threshold: float
+    early_stop_patience: int
 
 def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs):
     memory = EpisodeMemory(
@@ -210,8 +212,11 @@ def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs):
         VNF_SELECTION_IN_DIM, VNF_PLACEMENT_IN_DIM,
     )
     mp_env = MultiprocessEnvironment(args.seed, args.n_workers, make_env_fn)
-
+    debug_infos = pd.DataFrame([])
     training_start = time.time()
+
+    highest_reward = -float('inf')
+    early_stop_cnt = 0
     for episode in range(args.memory_max_episode_num, args.max_episode_num+args.memory_max_episode_num, args.memory_max_episode_num):
         memory.fill(mp_env, agent)
         vnf_s_ins, vnf_p_ins, actions, _, _, logpas, _ = memory.samples(all=True)
@@ -225,10 +230,18 @@ def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs):
             agent.update_value(*memory.samples())
         debug_info = memory.get_debug_info(episode=episode, training_start=training_start)
         print_debug_info(debug_info, refresh=True)
+        debug_infos.append(pd.DataFrame([debug_info]))
         memory.reset()
         os.makedirs('result/ppo', exist_ok=True)
         if episode % args.evaluate_every_n_episode == 0:
             evaluate(agent, make_env_fn, seed, f'result/ppo/episode{episode}')
+        if debug_info.mean_100_reward > highest_reward:
+            highest_reward = debug_info.mean_100_reward
+            early_stop_cnt = 0
+        if early_stop_cnt > args.early_stop_patience:
+            break
+    debug_infos.to_scv('result/ppo/debug_info.csv', index=False)
+    memory.close()
 
 def evaluate(agent: PPOAgent, make_env_fn: Callable, seed: int = 927, file_name: str = 'test'):
     env = make_env_fn(seed)
@@ -332,6 +345,7 @@ if __name__ == '__main__':
         memory_max_episode_num = 200,
         evaluate_every_n_episode = 10_000,
         policy_update_early_stop_threshold = 1e-3,
+        early_stop_patience = 50,
     )
 
     evaluate(agent, make_env_fn, seed, 'result/ppo/init')

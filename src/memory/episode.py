@@ -48,6 +48,9 @@ class EpisodeMemory:
 
         self.reset()
 
+    def close(self) -> None:
+        self.envs.close()
+
     def reset(self) -> None:
         self._clear_debug_info()
         self._clear_memory()
@@ -190,29 +193,49 @@ class EpisodeMemory:
 
     def get_debug_info(self, episode:int, training_start: float) -> DebugInfo:
         mean_100_change_slp_srv = np.mean(self.ch_slp_srv[-100:])
+        std_100_change_slp_srv = np.std(self.ch_slp_srv[-100:])
         meam_100_init_slp_srv = np.mean(self.init_slp_srv[-100:])
+        std_100_init_slp_srv = np.std(self.init_slp_srv[-100:])
         mean_100_final_slp_srv = np.mean(self.final_slp_srv[-100:])
+        std_100_final_slp_srv = np.std(self.final_slp_srv[-100:])
         mean_100_change_sfc_in_same_srv = np.mean(self.ch_sfc_in_same_srv[-100:])
+        std_100_change_sfc_in_same_srv = np.std(self.ch_sfc_in_same_srv[-100:])
         meam_100_init_sfc_in_same_srv = np.mean(self.init_sfc_in_same_srv[-100:])
+        std_100_init_sfc_in_same_srv = np.std(self.init_sfc_in_same_srv[-100:])
         mean_100_final_sfc_in_same_srv = np.mean(self.final_sfc_in_same_srv[-100:])
+        std_100_final_sfc_in_same_srv = np.std(self.final_sfc_in_same_srv[-100:])
         mean_100_steps = self.episode_steps[self.episode_steps > 0][-100:].to(torch.float32).mean()
+        std_100_steps = self.episode_steps[self.episode_steps > 0][-100:].to(torch.float32).std()
         mean_100_exploration = self.episode_explorations[self.episode_explorations > 0][-100:].to(torch.float32).mean()
+        std_100_exploration = self.episode_explorations[self.episode_explorations > 0][-100:].to(torch.float32).std()
+        mean_100_reward = self.episode_rewards[self.episode_rewards > 0][-100:].to(torch.float32).mean()
+        std_100_reward = self.episode_rewards[self.episode_rewards > 0][-100:].to(torch.float32).std()
 
         timestamp = time.strftime("%H:%M:%S", time.gmtime(time.time() - training_start))
 
         return DebugInfo(
             timestamp=timestamp,
             episode=episode,
-            step=mean_100_steps,
+            mean_100_step=mean_100_steps,
+            std_100_step=std_100_steps,
             mean_100_change_slp_srv=mean_100_change_slp_srv,
+            std_100_change_slp_srv=std_100_change_slp_srv,
             mean_100_init_slp_srv=meam_100_init_slp_srv,
+            std_100_init_slp_srv=std_100_init_slp_srv,
             mean_100_final_slp_srv=mean_100_final_slp_srv,
+            std_100_final_slp_srv=std_100_final_slp_srv,
             srv_n=self.srv_n,
             mean_100_change_sfc_in_same_srv=mean_100_change_sfc_in_same_srv,
+            std_100_change_sfc_in_same_srv=std_100_change_sfc_in_same_srv,
             mean_100_init_sfc_in_same_srv=meam_100_init_sfc_in_same_srv,
+            std_100_init_sfc_in_same_srv=std_100_init_sfc_in_same_srv,
             mean_100_final_sfc_in_same_srv=mean_100_final_sfc_in_same_srv,
+            std_100_final_sfc_in_same_srv=std_100_final_sfc_in_same_srv,
             sfc_n=self.max_sfc_n,
             mean_100_exploration=mean_100_exploration,
+            std_100_exploration=std_100_exploration,
+            mean_100_reward=mean_100_reward,
+            std_100_reward=std_100_reward,
         )
 
     def __len__(self):
