@@ -287,7 +287,7 @@ def train(agent: DQNAgent, make_env_fn: Callable, args: TrainArgs, file_name_pre
                      file_name=f'{file_name_prefix}_episode{episode}')
 
     pd.DataFrame(debug_infos).to_csv(
-        f'result/dqn/{file_name_prefix}_debug_info.csv', index=False)
+        f'{file_name_prefix}_debug_info.csv', index=False)
 
 
 def evaluate(agent: DQNAgent, make_env_fn: Callable, seed: int = 927, file_name: str = 'test'):
@@ -320,13 +320,14 @@ if __name__ == '__main__':
     # max_edge_load = 0.1
     seed = 927
 
-    def make_env_fn(seed): return Environment(
-        api=Simulator(srv_n, srv_cpu_cap, srv_mem_cap,
-                      max_vnf_num, sfc_n, max_edge_load),
-        seed=seed,
-    )
     max_edge_loads = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
     for max_edge_load in max_edge_loads:
+        def make_env_fn(seed): return Environment(
+            api=Simulator(srv_n, srv_cpu_cap, srv_mem_cap,
+                        max_vnf_num, sfc_n, max_edge_load),
+            seed=seed,
+        )
+        
         device = get_device()
         agent_info = DQNAgentInfo(
             srv_n=srv_n,
@@ -364,10 +365,10 @@ if __name__ == '__main__':
         )
 
         evaluate(agent, make_env_fn, seed=seed,
-                 file_name=f'edge_load={max_edge_load}_init')
+                 file_name=f'result/dqn/edge_load={max_edge_load}_init')
         train(agent, make_env_fn, train_args,
-              file_name_prefix=f'edge_load={max_edge_load}')
+              file_name_prefix=f'result/dqn/edge_load={max_edge_load}')
         evaluate(agent, make_env_fn, seed=seed,
-                 file_name=f'edge_load={max_edge_load}_final')
+                 file_name=f'result/dqn/edge_load={max_edge_load}_final')
 
         agent.save()

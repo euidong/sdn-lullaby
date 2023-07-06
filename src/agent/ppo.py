@@ -203,7 +203,7 @@ class TrainArgs:
     policy_update_early_stop_threshold: float
     early_stop_patience: int
 
-def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs):
+def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs, file_name_prefix: str):
     memory = EpisodeMemory(
         args.n_workers, args.batch_size,
         args.gamma, args.tau,
@@ -234,13 +234,14 @@ def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs):
         memory.reset()
         os.makedirs('result/ppo', exist_ok=True)
         if episode % args.evaluate_every_n_episode == 0:
-            evaluate(agent, make_env_fn, seed, f'result/ppo/episode{episode}')
+            evaluate(agent, make_env_fn, seed, f'{file_name_prefix}_episode{episode}')
         if debug_info.mean_100_reward > highest_reward:
             highest_reward = debug_info.mean_100_reward
             early_stop_cnt = 0
+            agent.save()
         if early_stop_cnt > args.early_stop_patience:
             break
-    pd.DataFrame(debug_infos).to_csv('result/ppo/debug_info.csv', index=False)
+    pd.DataFrame(debug_infos).to_csv(f'{file_name_prefix}_debug_info.csv', index=False)
     memory.close()
 
 def evaluate(agent: PPOAgent, make_env_fn: Callable, seed: int = 927, file_name: str = 'test'):
@@ -271,85 +272,89 @@ if __name__ == '__main__':
     max_vnf_num = 30
     srv_cpu_cap = 32
     srv_mem_cap = 96
-    max_edge_load = 0.3
+    # max_edge_load = 0.3
     seed = 927
     
-    make_env_fn = lambda seed : Environment(
-        api=Simulator(srv_n, srv_cpu_cap, srv_mem_cap, max_vnf_num, sfc_n, max_edge_load),
-        seed=seed,
-    )
+    max_edge_loads = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    for max_edge_load in max_edge_loads:
 
-    device = get_device()
-    agent_info = PPOAgentInfo(
-        vnf_s_policy_info=PPOPolicyInfo(
-            in_dim=VNF_SELECTION_IN_DIM,
-            hidden_dim=32,
-            out_dim=max_vnf_num,
-            num_blocks=2,
-            num_heads=2,
-            device=device,
-        ),
-        vnf_p_policy_info=PPOPolicyInfo(
-            in_dim=VNF_PLACEMENT_IN_DIM,
-            hidden_dim=32,
-            out_dim=srv_n,
-            num_blocks=2,
-            num_heads=2,
-            device=device,
-        ),
-        vnf_s_value_info=PPOValueInfo(
-            in_dim=VNF_SELECTION_IN_DIM,
-            hidden_dim=32,
-            seq_len=max_vnf_num,
-            num_blocks=2,
-            num_heads=2,
-            device=device,
-        ),
-        vnf_p_value_info=PPOValueInfo(
-            in_dim=VNF_PLACEMENT_IN_DIM,
-            hidden_dim=32,
-            seq_len=srv_n,
-            num_blocks=2,
-            num_heads=2,
-            device=device,
-        ),
-        vnf_s_policy_lr=1e-3,
-        vnf_p_policy_lr=1e-3,
-        vnf_s_value_lr=1e-3,
-        vnf_p_value_lr=1e-3,
-        vnf_s_policy_clip_range=0.1,
-        vnf_p_policy_clip_range=0.1,
-        vnf_s_entropy_loss_weight=0.01,
-        vnf_p_entropy_loss_weight=0.01,
-        vnf_s_policy_max_grad_norm=float('inf'),
-        vnf_p_policy_max_grad_norm=float('inf'),
-        vnf_s_value_clip_range=float('inf'),
-        vnf_p_value_clip_range=float('inf'),
-        vnf_s_value_max_grad_norm=float('inf'),
-        vnf_p_value_max_grad_norm=float('inf'),
-    )
-    agent = PPOAgent(agent_info)
+        make_env_fn = lambda seed : Environment(
+            api=Simulator(srv_n, srv_cpu_cap, srv_mem_cap, max_vnf_num, sfc_n, max_edge_load),
+            seed=seed,
+        )
 
-    train_args = TrainArgs(
-        srv_n = srv_n,
-        sfc_n = sfc_n,
-        max_vnf_num = max_vnf_num,
-        seed=seed,
-        tau = 0.97,
-        gamma = 0.99,
-        n_workers = 8,
-        batch_size = 32,
-        update_epochs = 80,
-        max_episode_num = 100_000,
-        max_episode_steps = max_vnf_num,
-        memory_max_episode_num = 200,
-        evaluate_every_n_episode = 10_000,
-        policy_update_early_stop_threshold = 1e-3,
-        early_stop_patience = 50,
-    )
+        device = get_device()
+        agent_info = PPOAgentInfo(
+            vnf_s_policy_info=PPOPolicyInfo(
+                in_dim=VNF_SELECTION_IN_DIM,
+                hidden_dim=32,
+                out_dim=max_vnf_num,
+                num_blocks=2,
+                num_heads=2,
+                device=device,
+            ),
+            vnf_p_policy_info=PPOPolicyInfo(
+                in_dim=VNF_PLACEMENT_IN_DIM,
+                hidden_dim=32,
+                out_dim=srv_n,
+                num_blocks=2,
+                num_heads=2,
+                device=device,
+            ),
+            vnf_s_value_info=PPOValueInfo(
+                in_dim=VNF_SELECTION_IN_DIM,
+                hidden_dim=32,
+                seq_len=max_vnf_num,
+                num_blocks=2,
+                num_heads=2,
+                device=device,
+            ),
+            vnf_p_value_info=PPOValueInfo(
+                in_dim=VNF_PLACEMENT_IN_DIM,
+                hidden_dim=32,
+                seq_len=srv_n,
+                num_blocks=2,
+                num_heads=2,
+                device=device,
+            ),
+            vnf_s_policy_lr=1e-3,
+            vnf_p_policy_lr=1e-3,
+            vnf_s_value_lr=1e-3,
+            vnf_p_value_lr=1e-3,
+            vnf_s_policy_clip_range=0.1,
+            vnf_p_policy_clip_range=0.1,
+            vnf_s_entropy_loss_weight=0.01,
+            vnf_p_entropy_loss_weight=0.01,
+            vnf_s_policy_max_grad_norm=float('inf'),
+            vnf_p_policy_max_grad_norm=float('inf'),
+            vnf_s_value_clip_range=float('inf'),
+            vnf_p_value_clip_range=float('inf'),
+            vnf_s_value_max_grad_norm=float('inf'),
+            vnf_p_value_max_grad_norm=float('inf'),
+        )
+        agent = PPOAgent(agent_info)
 
-    evaluate(agent, make_env_fn, seed, 'result/ppo/init')
-    train(agent, make_env_fn, train_args)
-    evaluate(agent, make_env_fn, seed, 'result/ppo/final')
+        train_args = TrainArgs(
+            srv_n = srv_n,
+            sfc_n = sfc_n,
+            max_vnf_num = max_vnf_num,
+            seed=seed,
+            tau = 0.97,
+            gamma = 0.99,
+            n_workers = 8,
+            batch_size = 32,
+            update_epochs = 80,
+            max_episode_num = 100_000,
+            max_episode_steps = max_vnf_num,
+            memory_max_episode_num = 200,
+            evaluate_every_n_episode = 10_000,
+            policy_update_early_stop_threshold = 1e-3,
+            early_stop_patience = 50,
+        )
+
+        evaluate(agent, make_env_fn, seed, f'result/ppo/edge_load={max_edge_load}_init')
+        train(agent, make_env_fn, train_args,
+              file_name_prefix=f'result/ppo/edge_load={max_edge_load}')
+        evaluate(agent, make_env_fn, seed, f'result/ppo/edge_load={max_edge_load}_final')
+
     
-    agent.save()
