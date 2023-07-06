@@ -326,7 +326,7 @@ def train(agent: DQNAgent, make_env_fn: Callable, args: TrainArgs):
         if episode % args.evaluate_every_n_episode == 0:
             evaluate(agent, make_env_fn, seed=args.seed,
                      file_name=f'episode{episode}')
-    pd.DataFrame(debug_infos).to_scv(
+    pd.DataFrame(debug_infos).to_csv(
         'result/baseline-dqn/debug_info.csv', index=False)
 
 

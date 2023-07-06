@@ -203,7 +203,7 @@ class TrainArgs:
     evaluate_every_n_episode: int
 
 
-def train(agent: DQNAgent, make_env_fn: Callable, args: TrainArgs):
+def train(agent: DQNAgent, make_env_fn: Callable, args: TrainArgs, file_name_prefix: str):
     env = make_env_fn(args.seed)
     training_start = time.time()
 
@@ -284,9 +284,10 @@ def train(agent: DQNAgent, make_env_fn: Callable, args: TrainArgs):
             print_debug_info(debug_info, refresh=True)
         if episode % args.evaluate_every_n_episode == 0:
             evaluate(agent, make_env_fn, seed=args.seed,
-                     file_name=f'episode{episode}')
+                     file_name=f'{file_name_prefix}_episode{episode}')
 
-    pd.DataFrame(debug_infos).to_scv('result/dqn/debug_info.csv', index=False)
+    pd.DataFrame(debug_infos).to_csv(
+        f'result/dqn/{file_name_prefix}_debug_info.csv', index=False)
 
 
 def evaluate(agent: DQNAgent, make_env_fn: Callable, seed: int = 927, file_name: str = 'test'):
@@ -316,7 +317,7 @@ if __name__ == '__main__':
     max_vnf_num = 20
     srv_cpu_cap = 32
     srv_mem_cap = 96
-    max_edge_load = 0.1
+    # max_edge_load = 0.1
     seed = 927
 
     def make_env_fn(seed): return Environment(
@@ -324,44 +325,49 @@ if __name__ == '__main__':
                       max_vnf_num, sfc_n, max_edge_load),
         seed=seed,
     )
-    device = get_device()
-    agent_info = DQNAgentInfo(
-        srv_n=srv_n,
-        max_vnf_num=max_vnf_num,
-        init_epsilon=0.5,
-        final_epsilon=0.0,
-        vnf_s_lr=1e-3,
-        vnf_p_lr=1e-3,
-        gamma=0.99,
-        vnf_s_model_info=DQNValueInfo(
-            in_dim=VNF_SELECTION_IN_DIM,
-            hidden_dim=32,
-            num_heads=4,
-            num_blocks=4,
-            device=device,
-        ),
-        vnf_p_model_info=DQNValueInfo(
-            in_dim=VNF_PLACEMENT_IN_DIM,
-            hidden_dim=32,
-            num_heads=4,
-            num_blocks=4,
-            device=device,
-        ),
-    )
-    agent = DQNAgent(agent_info)
+    max_edge_loads = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
+    for max_edge_load in max_edge_loads:
+        device = get_device()
+        agent_info = DQNAgentInfo(
+            srv_n=srv_n,
+            max_vnf_num=max_vnf_num,
+            init_epsilon=0.5,
+            final_epsilon=0.0,
+            vnf_s_lr=1e-3,
+            vnf_p_lr=1e-3,
+            gamma=0.99,
+            vnf_s_model_info=DQNValueInfo(
+                in_dim=VNF_SELECTION_IN_DIM,
+                hidden_dim=32,
+                num_heads=4,
+                num_blocks=4,
+                device=device,
+            ),
+            vnf_p_model_info=DQNValueInfo(
+                in_dim=VNF_PLACEMENT_IN_DIM,
+                hidden_dim=32,
+                num_heads=4,
+                num_blocks=4,
+                device=device,
+            ),
+        )
+        agent = DQNAgent(agent_info)
 
-    train_args = TrainArgs(
-        srv_n=srv_n,
-        sfc_n=sfc_n,
-        max_vnf_num=max_vnf_num,
-        seed=seed,
-        max_episode_num=10_000,
-        debug_every_n_episode=500,
-        evaluate_every_n_episode=500
-    )
+        train_args = TrainArgs(
+            srv_n=srv_n,
+            sfc_n=sfc_n,
+            max_vnf_num=max_vnf_num,
+            seed=seed,
+            max_episode_num=10_000,
+            debug_every_n_episode=500,
+            evaluate_every_n_episode=500
+        )
 
-    evaluate(agent, make_env_fn, seed=seed, file_name='init')
-    train(agent, make_env_fn, train_args)
-    evaluate(agent, make_env_fn, seed=seed, file_name='final')
+        evaluate(agent, make_env_fn, seed=seed,
+                 file_name=f'edge_load={max_edge_load}_init')
+        train(agent, make_env_fn, train_args,
+              file_name_prefix=f'edge_load={max_edge_load}')
+        evaluate(agent, make_env_fn, seed=seed,
+                 file_name=f'edge_load={max_edge_load}_final')
 
-    agent.save()
+        agent.save()

@@ -240,7 +240,7 @@ def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs):
             early_stop_cnt = 0
         if early_stop_cnt > args.early_stop_patience:
             break
-    pd.DataFrame(debug_infos).to_scv('result/ppo/debug_info.csv', index=False)
+    pd.DataFrame(debug_infos).to_csv('result/ppo/debug_info.csv', index=False)
     memory.close()
 
 def evaluate(agent: PPOAgent, make_env_fn: Callable, seed: int = 927, file_name: str = 'test'):
