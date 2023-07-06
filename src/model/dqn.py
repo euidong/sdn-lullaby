@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import torch.nn as nn
 
-from src.model.base import Block
+from src.model.base import SelfAttentionBlock
 
 
 @dataclass
@@ -24,7 +24,7 @@ class DQNValue(nn.Module):
 
         self.attention = nn.ModuleList()
         for _ in range(info.num_blocks):
-            self.attention.append(Block(info.hidden_dim, info.num_heads))
+            self.attention.append(SelfAttentionBlock(info.hidden_dim, info.num_heads))
         self.output_layer = nn.Linear(info.hidden_dim, 1)
 
         self.device = info.device

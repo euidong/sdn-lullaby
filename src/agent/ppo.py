@@ -1,8 +1,9 @@
 import os
 import time
+from typing import Callable
+
 import torch
 from dataclasses import dataclass
-from typing import Callable
 
 from src.dataType import State, Action
 from src.api.simulator import Simulator
@@ -252,11 +253,11 @@ def evaluate(agent: PPOAgent, make_env_fn: Callable, seed: int = 927, file_name:
 
 if __name__ == '__main__':
     # Simulator Args
-    srv_n = 4
-    sfc_n = 4
-    max_vnf_num = 10
-    srv_cpu_cap = 8
-    srv_mem_cap = 32
+    srv_n = 8
+    sfc_n = 8
+    max_vnf_num = 30
+    srv_cpu_cap = 32
+    srv_mem_cap = 96
     max_edge_load = 0.3
     seed = 927
     

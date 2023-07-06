@@ -5,18 +5,32 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Train DQN",
+      "name": "Run DQN",
       "type": "python",
       "request": "launch",
       "module": "src.agent.dqn",
       "justMyCode": true
     },
     {
-      "name": "Train PPO",
+      "name": "Run PPO",
       "type": "python",
       "request": "launch",
       "module": "src.agent.ppo",
       "justMyCode": true
-    }
+    },
+    {
+      "name": "Run Baseline [Rule-based]",
+      "type": "python",
+      "request": "launch",
+      "module": "src.agent.baseline.rule",
+      "justMyCode": true
+    },
+    {
+      "name": "Run Baseline [DQN-3step]",
+      "type": "python",
+      "request": "launch",
+      "module": "src.agent.baseline.dqn",
+      "justMyCode": true
+    },
   ]
 }

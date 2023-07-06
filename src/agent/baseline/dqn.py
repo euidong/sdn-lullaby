@@ -1,5 +1,13 @@
+class BaselineDQNAgent: pass
+
+def train(): pass
+def evaluate(): pass
+
+if __name__ == '__main__':
+    pass
 import os
 import time
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import List, Dict, Callable
 
@@ -61,8 +69,8 @@ class DQNAgent:
         return max(self.info.final_epsilon, self.info.init_epsilon - epsilon_sub)
 
     def decide_action(self, state: State, epsilon_sub: float) -> Action:
-        possible_actions = get_possible_actions(state, self.info.max_vnf_num)
-        vnf_s_in = convert_state_to_vnf_selection_input(state, self.info.max_vnf_num)
+        possible_actions = self._get_possible_actions(state, self.info.max_vnf_num)
+        vnf_s_in = self._convert_state_to_vnf_selection_input(state, self.info.max_vnf_num)
         epsilon = self.get_exploration_rate(epsilon_sub)
         is_random = np.random.uniform() < epsilon
         if is_random:
@@ -182,6 +190,35 @@ class DQNAgent:
         self.vnf_placement_model.load_state_dict(
             torch.load("param/dqn/vnf_placement_model.pth"))
 
+    def _get_min_load_srv_idx(self, state: State) -> int:
+        min_load_srv_idx = 0
+        min_srv_load = state.srvs[0].cpu_load + state.srvs[0].mem_load
+        for state_srv in state.srvs:
+            load = state_srv.cpu_load + state_srv.mem_load
+            if load < min_srv_load:
+                min_srv_load = load
+                min_load_srv_idx = state_srv.id
+        return min_load_srv_idx
+
+    def _get_possible_actions(self, state: State, max_vnf_num: int) -> Dict[int, List[int]]:
+        p_actions = get_possible_actions(state, max_vnf_num)
+        min_load_srv_idx = self._get_min_load_srv_idx(state)
+        new_p_actions = {}
+        for vnf_id, p_srv_ids in p_actions.items():
+            if min_load_srv_idx in p_srv_ids:
+                new_p_actions[vnf_id] = p_srv_ids[:]
+            else:
+                new_p_actions[vnf_id] = []
+        return new_p_actions
+
+    def _convert_state_to_vnf_selection_input(self, state: State, max_vnf_num: int) -> torch.Tensor:
+        min_load_srv_idx = self._get_min_load_srv_idx(state)
+        dummy_state = deepcopy(state)
+        for vnf in dummy_state.vnfs:
+            if vnf.srv_id == min_load_srv_idx:
+                dummy_state.vnfs.remove(vnf)
+        return convert_state_to_vnf_selection_input(dummy_state, max_vnf_num)
+
 @dataclass
 class TrainArgs:
     srv_n: int
@@ -267,11 +304,11 @@ def evaluate(agent: DQNAgent, make_env_fn: Callable, seed: int = 927, file_name:
         if done:
             break
     history.append((state, None))
-    os.makedirs('./result/dqn', exist_ok=True)
+    os.makedirs('./result/baseline-dqn', exist_ok=True)
     save_animation(
         srv_n=srv_n, sfc_n=sfc_n, vnf_n=max_vnf_num,
         srv_mem_cap=srv_mem_cap, srv_cpu_cap=srv_cpu_cap, 
-        history=history, path=f'./result/dqn/{file_name}.mp4',
+        history=history, path=f'./result/baseline-dqn/{file_name}.mp4',
     )
 
 
