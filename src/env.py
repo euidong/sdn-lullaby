@@ -82,7 +82,7 @@ class MultiprocessEnvironment:
         self.workers = [mp.Process(target=self._work, args=(rank, self.pipes[rank][1])) for rank in range(n_workers)]
         [w.start() for w in self.workers]
 
-    def _close(self, **kwargs):
+    def close(self, **kwargs):
         self._broadcast_msg(('close', kwargs))
         [w.join() for w in self.workers]
 

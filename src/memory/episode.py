@@ -48,9 +48,6 @@ class EpisodeMemory:
 
         self.reset()
 
-    def close(self) -> None:
-        self.envs.close()
-
     def reset(self) -> None:
         self._clear_debug_info()
         self._clear_memory()

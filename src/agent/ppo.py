@@ -239,10 +239,11 @@ def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs, file_name_pre
             highest_reward = debug_info.mean_100_reward
             early_stop_cnt = 0
             agent.save()
+        early_stop_cnt += 1
         if early_stop_cnt > args.early_stop_patience:
             break
     pd.DataFrame(debug_infos).to_csv(f'{file_name_prefix}_debug_info.csv', index=False)
-    memory.close()
+    mp_env.close()
 
 def evaluate(agent: PPOAgent, make_env_fn: Callable, seed: int = 927, file_name: str = 'test'):
     env = make_env_fn(seed)
@@ -269,15 +270,16 @@ if __name__ == '__main__':
     # Simulator Args
     srv_n = 8
     sfc_n = 8
-    max_vnf_num = 30
-    srv_cpu_cap = 32
-    srv_mem_cap = 96
-    # max_edge_load = 0.3
+    max_vnf_num = 20
+    srv_cpu_cap = 12
+    srv_mem_cap = 32
+    max_edge_load = 0.3
     seed = 927
     
-    max_edge_loads = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]
-    for max_edge_load in max_edge_loads:
-
+    srv_sfc_pairs = [(4,4), (4,8), (4, 12), (8, 4), (8, 8), (8, 12), (12, 4), (12, 8), (12, 12)]
+    
+    for srv_sfc_pair in srv_sfc_pairs:
+        srv_n, sfc_n = srv_sfc_pair
         make_env_fn = lambda seed : Environment(
             api=Simulator(srv_n, srv_cpu_cap, srv_mem_cap, max_vnf_num, sfc_n, max_edge_load),
             seed=seed,

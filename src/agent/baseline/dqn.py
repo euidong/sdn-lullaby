@@ -208,7 +208,9 @@ class DQNAgent:
         min_srv_load = state.srvs[0].cpu_load + state.srvs[0].mem_load
         for state_srv in state.srvs:
             load = state_srv.cpu_load + state_srv.mem_load
-            if load < min_srv_load:
+            if load == 0:
+                continue
+            if min_srv_load == 0 or load < min_srv_load:
                 min_srv_load = load
                 min_load_srv_idx = state_srv.id
         return min_load_srv_idx

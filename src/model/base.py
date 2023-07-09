@@ -43,14 +43,14 @@ class SelfAttentionBlock(nn.Module):
         return output, attention_weights
 
 class LSTMBlock(nn.Module):
-    def __init__(self, input_size, hidden_size):
+    def __init__(self, input_size, num_heads):
         super(LSTMBlock, self).__init__()
         self.input_size = input_size
-        self.hidden_size = hidden_size
+        self.num_heads = num_heads
 
-        self.lstm = nn.LSTM(input_size, hidden_size, batch_first=True)
-        self.norm = nn.BatchNorm1d(hidden_size)
-        self.fc = nn.Linear(hidden_size, input_size)
+        self.lstm = nn.LSTM(input_size, input_size, batch_first=True)
+        self.norm = nn.BatchNorm1d(input_size)
+        self.fc = nn.Linear(input_size, input_size)
         self.relu = nn.ReLU()
 
     def forward(self, x):
