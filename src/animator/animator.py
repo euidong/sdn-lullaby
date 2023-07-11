@@ -10,6 +10,7 @@ from src.dataType import State, Action
 
 class Animator:
     FPS = 4
+
     def __init__(self, srv_n, srv_cpu_cap, srv_mem_cap, sfc_n, vnf_n, history: List[Tuple[State, Optional[Action]]]):
         self.srv_n = srv_n
         self.sfc_n = sfc_n
@@ -17,7 +18,7 @@ class Animator:
         self.srv_idxs = np.arange(srv_n)
 
         self.history = history
-        fig, axs = plt.subplots(1, 2, figsize=(10, 12))
+        fig, axs = plt.subplots(1, 2, figsize=(12, 16))
         self.fig = fig
         self.cmap = plt.get_cmap("Pastel1")
 
@@ -38,15 +39,20 @@ class Animator:
             i), edgecolor='black', linewidth=2) for _ in range(vnf_n)] for i in range(sfc_n)]
         self.mem_bars = [[axs[1].bar(self.srv_idxs, np.zeros(srv_n), color=self.cmap(
             i), edgecolor='black', linewidth=2) for _ in range(vnf_n)] for i in range(sfc_n)]
-        self.cpu_bar_texts = [[[axs[0].text(0, 0, '', ha='center', va='center') for _ in range(srv_n)] for _ in range(vnf_n)] for _ in range(sfc_n)]
-        self.mem_bar_texts = [[[axs[1].text(0, 0, '', ha='center', va='center') for _ in range(srv_n)] for _ in range(vnf_n)] for _ in range(sfc_n)]
-        
+        self.cpu_bar_texts = [[[axs[0].text(0, 0, '', ha='center', va='center') for _ in range(
+            srv_n)] for _ in range(vnf_n)] for _ in range(sfc_n)]
+        self.mem_bar_texts = [[[axs[1].text(0, 0, '', ha='center', va='center') for _ in range(
+            srv_n)] for _ in range(vnf_n)] for _ in range(sfc_n)]
+
         axs[0].xaxis.set_ticks(self.srv_idxs)
         axs[1].xaxis.set_ticks(self.srv_idxs)
-        axs[0].yaxis.set_ticks(np.append(np.arange(0, srv_cpu_cap, srv_cpu_cap // 8),[srv_cpu_cap]))
-        axs[1].yaxis.set_ticks(np.append(np.arange(0, srv_mem_cap, srv_mem_cap // 8),[srv_mem_cap]))
+        axs[0].yaxis.set_ticks(
+            np.append(np.arange(0, srv_cpu_cap, srv_cpu_cap // 8), [srv_cpu_cap]))
+        axs[1].yaxis.set_ticks(
+            np.append(np.arange(0, srv_mem_cap, srv_mem_cap // 8), [srv_mem_cap]))
 
-        handles = [mpatches.Patch(color=self.cmap(i), label=f'SFC{i+1}') for i in range(sfc_n)]
+        handles = [mpatches.Patch(color=self.cmap(
+            i), label=f'SFC{i+1}') for i in range(sfc_n)]
         self.legend = fig.legend(handles=handles)
         self.suptitle = fig.suptitle('', fontweight='bold')
 
@@ -59,7 +65,7 @@ class Animator:
     def save(self, path):
         anim = FuncAnimation(self.fig, self.animate,
                              frames=len(self.history), interval=1000/self.FPS)
-        
+
         anim.save(path, writer=self.writer)
 
     def draw_state(self, attempt: int, state: State, action: Action = None) -> None:
@@ -104,14 +110,16 @@ class Animator:
                     if cpu_height > 0:
                         posx = cpu_bar.get_x() + cpu_bar.get_width() * 0.5
                         posy = cpu_height * 0.5 + cpu_bottom[k]
-                        self.cpu_bar_texts[i][j][k].set_text(f'id:{state.sfcs[i].vnfs[j].id}\nreq:{int(cpu_height)}')
+                        self.cpu_bar_texts[i][j][k].set_text(
+                            f'id:{state.sfcs[i].vnfs[j].id}\nreq:{int(cpu_height)}')
                         self.cpu_bar_texts[i][j][k].set_position((posx, posy))
                     if mem_height > 0:
                         posx = mem_bar.get_x() + mem_bar.get_width() * 0.5
                         posy = mem_height * 0.5 + mem_bottom[k]
-                        self.mem_bar_texts[i][j][k].set_text(f'id:{state.sfcs[i].vnfs[j].id}\nreq:{int(cpu_height)}')
+                        self.mem_bar_texts[i][j][k].set_text(
+                            f'id:{state.sfcs[i].vnfs[j].id}\nreq:{int(cpu_height)}')
                         self.mem_bar_texts[i][j][k].set_position((posx, posy))
                 cpu_bottom += cur_cpu_height
                 mem_bottom += cur_mem_height
-        
+
         self.suptitle.set_text(f'[Attempt #{attempt}] action: {action}')
