@@ -63,13 +63,13 @@ conda activate vnf-consolidation
 #### DQN Agent
 
 ```bash
-python -m src.agent.dqn.py
+python -m src.agent.dqn
 ```
 
 #### PPO Agent
 
 ```bash
-python -m src.agent.ppo.py
+python -m src.agent.ppo
 ```
 
 ## Project Structure
@@ -81,6 +81,15 @@ python -m src.agent.ppo.py
 |- result/    # Result metrics & animations
 `- resource/  # Resource files
 ```
+
+## Architecture
+
+<div align="center">
+
+  <img width="500px" src="/resource/architecture.png">
+
+</div>
+
 
 ## Result
 
