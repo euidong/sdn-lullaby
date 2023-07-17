@@ -191,6 +191,13 @@ class DQNAgent:
         self.vnf_placement_model.load_state_dict(
             torch.load("param/dqn/vnf_placement_model.pth"))
 
+    def set_train(self) -> None:
+        self.vnf_selection_model.train()
+        self.vnf_placement_model.train()
+    
+    def set_eval(self) -> None:
+        self.vnf_selection_model.eval()
+        self.vnf_placement_model.eval()
 
 @dataclass
 class TrainArgs:
@@ -204,6 +211,7 @@ class TrainArgs:
 
 
 def train(agent: DQNAgent, make_env_fn: Callable, args: TrainArgs, file_name_prefix: str):
+    agent.set_train()
     env = make_env_fn(args.seed)
     training_start = time.time()
 
@@ -285,12 +293,14 @@ def train(agent: DQNAgent, make_env_fn: Callable, args: TrainArgs, file_name_pre
         if episode % args.evaluate_every_n_episode == 0:
             evaluate(agent, make_env_fn, seed=args.seed,
                      file_name=f'{file_name_prefix}_episode{episode}')
+            agent.set_train()
 
     pd.DataFrame(debug_infos).to_csv(
         f'{file_name_prefix}_debug_info.csv', index=False)
 
 
 def evaluate(agent: DQNAgent, make_env_fn: Callable, seed: int = 927, file_name: str = 'test'):
+    agent.set_eval()
     env = make_env_fn(seed)
     state = env.reset()
     history = []
@@ -302,11 +312,11 @@ def evaluate(agent: DQNAgent, make_env_fn: Callable, seed: int = 927, file_name:
         if done:
             break
     history.append((state, None))
-    os.makedirs('./result/dqn', exist_ok=True)
+    
     save_animation(
         srv_n=srv_n, sfc_n=sfc_n, vnf_n=max_vnf_num,
         srv_mem_cap=srv_mem_cap, srv_cpu_cap=srv_cpu_cap,
-        history=history, path=f'./result/dqn/{file_name}.mp4',
+        history=history, path=f'{file_name}.mp4',
     )
 
 
@@ -364,6 +374,7 @@ if __name__ == '__main__':
             evaluate_every_n_episode=500
         )
 
+        os.makedirs('result/dqn', exist_ok=True)
         evaluate(agent, make_env_fn, seed=seed,
                  file_name=f'result/dqn/edge_load={max_edge_load}_init')
         train(agent, make_env_fn, train_args,

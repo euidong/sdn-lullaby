@@ -33,12 +33,12 @@ class SelfAttentionBlock(nn.Module):
         z, attention_weights = self.mha(q, k, v)
         x = x + z
         
-        x = torch.stack([self.norm(x[:, i]) if batch_len > 1 else x[:, i] for i in range(seq_len)], dim=1)
+        x = torch.stack([self.norm(x[:, i]) for i in range(seq_len)], dim=1)
         z = self.fc2(x)
         z = self.relu(z)
         z = self.fc3(z)
         x = x + z
-        output = torch.stack([self.norm(x[:, i]) if batch_len > 1 else x[:, i] for i in range(seq_len)], dim=1)
+        output = torch.stack([self.norm(x[:, i]) for i in range(seq_len)], dim=1)
 
         return output, attention_weights
 

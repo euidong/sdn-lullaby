@@ -185,6 +185,14 @@ class PPOAgent:
         self.vnf_s_policy.load_state_dict(torch.load('param/ppo/vnf_s_policy.pt'))
         self.vnf_p_policy.eval()
 
+    def set_train(self) -> None:
+        self.vnf_p_policy.train()
+        self.vnf_s_policy.train()
+    
+    def set_eval(self) -> None:
+        self.vnf_p_policy.eval()
+        self.vnf_s_policy.eval()
+
 @dataclass
 class TrainArgs:
     srv_n: int
@@ -204,6 +212,7 @@ class TrainArgs:
     early_stop_patience: int
 
 def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs, file_name_prefix: str):
+    agent.set_train()
     memory = EpisodeMemory(
         args.n_workers, args.batch_size,
         args.gamma, args.tau,
@@ -232,9 +241,9 @@ def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs, file_name_pre
         print_debug_info(debug_info, refresh=True)
         debug_infos.append(debug_info)
         memory.reset()
-        os.makedirs('result/ppo', exist_ok=True)
         if episode % args.evaluate_every_n_episode == 0:
             evaluate(agent, make_env_fn, seed, f'{file_name_prefix}_episode{episode}')
+            agent.set_train()
         if debug_info.mean_100_reward > highest_reward:
             highest_reward = debug_info.mean_100_reward
             early_stop_cnt = 0
@@ -246,6 +255,7 @@ def train(agent: PPOAgent, make_env_fn: Callable, args: TrainArgs, file_name_pre
     mp_env.close()
 
 def evaluate(agent: PPOAgent, make_env_fn: Callable, seed: int = 927, file_name: str = 'test'):
+    agent.set_eval()
     env = make_env_fn(seed)
     srv_n = env.api.srv_n
     sfc_n = env.api.sfc_n
@@ -354,6 +364,7 @@ if __name__ == '__main__':
             early_stop_patience = 50,
         )
 
+        os.makedirs('result/ppo', exist_ok=True)
         evaluate(agent, make_env_fn, seed, f'result/ppo/edge_load={max_edge_load}_init')
         train(agent, make_env_fn, train_args,
               file_name_prefix=f'result/ppo/edge_load={max_edge_load}')

@@ -344,11 +344,11 @@ def evaluate(agent: DQNAgent, make_env_fn: Callable, seed: int = 927, file_name:
         if done:
             break
     history.append((state, None))
-    os.makedirs('./result/baseline-dqn', exist_ok=True)
+    
     save_animation(
         srv_n=srv_n, sfc_n=sfc_n, vnf_n=max_vnf_num,
         srv_mem_cap=srv_mem_cap, srv_cpu_cap=srv_cpu_cap,
-        history=history, path=f'./result/baseline-dqn/{file_name}.mp4',
+        history=history, path=f'{file_name}.mp4',
     )
 
 
@@ -403,8 +403,9 @@ if __name__ == '__main__':
         evaluate_every_n_episode=500
     )
 
-    evaluate(agent, make_env_fn, seed=seed, file_name='init')
+    os.makedirs('result/baseline-dqn', exist_ok=True)
+    evaluate(agent, make_env_fn, seed=seed, file_name='result/baseline-dqn/init')
     train(agent, make_env_fn, train_args)
-    evaluate(agent, make_env_fn, seed=seed, file_name='final')
+    evaluate(agent, make_env_fn, seed=seed, file_name='result/baseline-dqn/final')
 
     agent.save()
