@@ -18,24 +18,7 @@
 
 VM Consolidation for SDN using Transformer-Based Deep Reinforcement Learning.
 
-The goal of the project is to redistibute VNF (or VM) deployed inefficiently on multiple servers to maximize the performance of SFC while operating with as few servers as possible. After this process, unused machine go sleep mode. So, I named this project `SDN Lullaby`.
-
-Below images show CPU, Memory load by VNF on each server after each action from this model.
-
-<div align="center">
-
-  <img width="49.3%" src="/resource/ppo_edge_load=0.2_init.gif">
-  <img width="49.3%" src="/resource/ppo_edge_load=0.2_final.gif">
-  
-</div>
-
-The left gif displays the results of the initial (untrained) model, while the right gif show the final results of the trained model.
-
-- \# of SRV : 8
-- \# of VNF : Random (Maximum 20)
-- \# of SFC : 8
-- Each Server CPU Capacity : 12
-- Each Server Memory Capacity : 32
+The goal of this project is to redistribute VNF (or VM) deployed inefficiently on multiple servers to maximize the performance of SFC while operating with as few servers as possible. After this process, the unused machine goes to sleep mode. So, I named this project `SDN Lullaby`.
 
 ## Dependency
 
@@ -66,12 +49,6 @@ conda activate vnf-consolidation
 python -m src.agent.dqn
 ```
 
-#### PPO Agent
-
-```bash
-python -m src.agent.ppo
-```
-
 ## Project Structure
 
 ```plaintext
@@ -86,42 +63,14 @@ python -m src.agent.ppo
 
 <div align="center">
 
-  <img width="500px" src="/resource/architecture.png">
+  <img width="45%" src="/resource/architecture-1.png">
+  <img width="49.2%" src="/resource/architecture-2.png">
 
 </div>
 
+## Further More
 
-## Result
-
-### Compare with Baseline System
-
-#### 1. Rule based System
-
-<div>
-  <img width="49.3%" src="/resource/rule_edge_load=0.2.gif">
-</div>
-
-#### 2. DQN
-
-Left is before training result, right is after training result.
-
-<div>
-  <img width="49.3%" src="/resource/dqn_edge_load=0.2_init.gif">
-  <img width="49.3%" src="/resource/dqn_edge_load=0.2_final.gif">
-</div>
-
-#### 3. PPO (Our Method)
-
-Left is before training result, right is after training result.
-
-<div>
-  <img width="49.3%" src="/resource/ppo_edge_load=0.2_init.gif">
-  <img width="49.3%" src="/resource/ppo_edge_load=0.2_final.gif">
-</div>
-
-### Metrics
-
-Additional performance metrics are available in the following notebook: [performance_metrics.ipynb](./performance_metrics.ipynb).
+I also implemented PPO-based Implementation. If you are interesting in it, go to [ppo branch](https://github.com/euidong/sdn-lullaby/tree/ppo).
 
 ## Reference
 
