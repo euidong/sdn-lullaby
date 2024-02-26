@@ -32,6 +32,11 @@ The goal of this project is to redistribute VNF (or VM) deployed inefficiently o
 - pandas : 1.5.2
 - ffmpeg : 4.2.2 (for animation rendering)
 
+## Published at
+
+<i>Eui-Dong Jeong, Jae-Hyoung Yoo, James Won-Ki Hong, ["SDN Lullaby: VM Consolidation for SDN using Transformer-Based Deep Reinforcement Learning"](https://ieeexplore.ieee.org/abstract/document/10327902), 19th International Conference on Network and Service Management (CNSM 2023), Niagara Falls, Canada, Oct. 30 – Nov. 2, 2023.</i>
+
+
 ## Run
 
 ### 1. Install python packages
