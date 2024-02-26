@@ -20,6 +20,10 @@ VM Consolidation for SDN using Transformer-Based Deep Reinforcement Learning.
 
 The goal of this project is to redistribute VNF (or VM) deployed inefficiently on multiple servers to maximize the performance of SFC while operating with as few servers as possible. After this process, the unused machine goes to sleep mode. So, I named this project `SDN Lullaby`.
 
+## Published at
+
+<i>Eui-Dong Jeong, Jae-Hyoung Yoo, James Won-Ki Hong, ["SDN Lullaby: VM Consolidation for SDN using Transformer-Based Deep Reinforcement Learning"](https://ieeexplore.ieee.org/abstract/document/10327902), 19th International Conference on Network and Service Management (CNSM 2023), Niagara Falls, Canada, Oct. 30 – Nov. 2, 2023.</i>
+
 ## Dependency
 
 - GPU : Quadro RTX 5000
@@ -31,11 +35,6 @@ The goal of this project is to redistribute VNF (or VM) deployed inefficiently o
 - matplotlib : 3.7.1
 - pandas : 1.5.2
 - ffmpeg : 4.2.2 (for animation rendering)
-
-## Published at
-
-<i>Eui-Dong Jeong, Jae-Hyoung Yoo, James Won-Ki Hong, ["SDN Lullaby: VM Consolidation for SDN using Transformer-Based Deep Reinforcement Learning"](https://ieeexplore.ieee.org/abstract/document/10327902), 19th International Conference on Network and Service Management (CNSM 2023), Niagara Falls, Canada, Oct. 30 – Nov. 2, 2023.</i>
-
 
 ## Run
 
